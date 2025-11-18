@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
 import Modal from "../../components/Modal.jsx";
-import { ShowEveryThing } from "../../credentials/index.js";
+import { useShowEverything } from "../../credentials/index.js";
 
 
 const KalyanOnly = ({ tabBorderColor }) => {
@@ -21,7 +21,8 @@ const KalyanOnly = ({ tabBorderColor }) => {
   const [openLoginModal, setOpenLoginModal] = useState(false);
 
   const token = localStorage.getItem("authToken");
-  let showResultsOnly = !ShowEveryThing;
+  const { showEverything } = useShowEverything();
+  let showResultsOnly = !showEverything;
 
   useEffect(() => {
     // if(localStorage.getItem("welcomeStatus")){

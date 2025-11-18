@@ -9,7 +9,7 @@ import Auth from '../../layouts/Auth.jsx';
 import { useNavigate } from "react-router-dom";
 import Modal from "../../components/Modal.jsx";
 import { useSelector } from "react-redux";
-import { ShowEveryThing } from "../../credentials/index.js";
+import { useShowEverything } from "../../credentials/index.js";
 
 const DesawarOnly = ({ tabBorderColor }) => {
   const [marketsData, setMarketData] = useState([]);
@@ -18,7 +18,8 @@ const DesawarOnly = ({ tabBorderColor }) => {
   const [authModalOpen, setAuthModalOpen] = useState(false); // State for authentication modal
   const [openLoginModal, setOpenLoginModal] = useState(false);
   let { appData } = useSelector((state) => state.appData.appData);
-  let showResultsOnly = !ShowEveryThing;
+  const { showEverything } = useShowEverything();
+  let showResultsOnly = !showEverything;
 
   const token = localStorage.getItem("authToken");
 

@@ -8,7 +8,7 @@ import Modal from "./Modal";
 import moment from "moment";
 import { setAppData, setReadNotifications } from "../store/features/appData/appDataSlice";
 import { getUserBalance } from "../repository/BalanceRepository";
-import { ShowEveryThing } from "../credentials";
+import { useShowEverything } from "../credentials";
 
 // Function to convert URLs in text to clickable links while preserving line breaks
 const linkifyText = (text) => {
@@ -121,7 +121,8 @@ const Header = ({ toggleSideBar }) => {
     const currentUser = user?.phone ? user : storedUser;
 
     const isAuthenticated = Boolean(localStorage.getItem("authToken"));
-    let showResultsOnly = !ShowEveryThing;
+    const { showEverything } = useShowEverything();
+    let showResultsOnly = !showEverything;
 
     return (
         <>

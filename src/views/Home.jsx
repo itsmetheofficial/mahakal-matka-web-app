@@ -13,7 +13,7 @@ import moment from "moment";
 import Play from "./Play.jsx"
 import Modal from "../components/Modal.jsx"
 import InstallAppDialog from "../components/InstallAppDialog.jsx";
-import { ShowEveryThing } from "../credentials/index.js";
+import { useShowEverything } from "../credentials/index.js";
 
 // const Play = React.lazy(() => import('./Play.jsx'));
 // const Modal = React.lazy(() => import('../components/Modal'));
@@ -31,6 +31,8 @@ const Home = () => {
     const [showInstallDialog, setShowInstallDialog] = useState(false);
     const [hasShownInstallDialog, setHasShownInstallDialog] = useState(false);
 
+    const { showEverything } = useShowEverything();
+    let showResultsOnly = !showEverything;
 
     const getCurrentDate = () => {
         return moment(moment.now()).format("YYYY-MM-DD");
@@ -324,8 +326,6 @@ const Home = () => {
             </div>
         );
     }
-
-    let showResultsOnly = !ShowEveryThing;
 
     return (
         <>

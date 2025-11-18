@@ -1,0 +1,4 @@
+---
+alwaysApply: true
+---
+This project should never generate .md or markdown files for any changes or features you add.

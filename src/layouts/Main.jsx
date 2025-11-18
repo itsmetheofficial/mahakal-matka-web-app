@@ -5,7 +5,7 @@ import FloatingMenu from "../components/FloatingMenu";
 import { Outlet, useNavigate, useLocation, useNavigationType } from "react-router-dom";
 import Modal from "../components/Modal"
 import { useSelector } from "react-redux";
-import { ShowEveryThing } from "../credentials";
+import { useShowEverything } from "../credentials";
 
 const Main = () => {
   let navigate = useNavigate();
@@ -42,7 +42,8 @@ const Main = () => {
     }
   }, [navigationType])
 
-  let showResultsOnly = !ShowEveryThing;
+  const { showEverything } = useShowEverything();
+  let showResultsOnly = !showEverything;
 
   return (
     <div className="font-poppins border border-black/20 border-t-0 border-b-0 overflow-hidden relative max-w-[480px] w-full mx-auto h-[100vh]">
