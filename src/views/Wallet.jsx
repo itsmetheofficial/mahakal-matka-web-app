@@ -653,14 +653,7 @@ const Wallet = () => {
                             user={user}
                             appData={appData}
                         />
-                        <p className="px-3 mt-1 text-xs text-center text-red-600">
-                            {/* आपका पैसा 5 से 10 मिनट मैं एड हो जाएगा */}
-                        </p>
-                        {/* <p className="px-3 mt-2 text-xs text-center text-blue-400">
-              Win Amount :- 0
-            </p> */}
                         <p className="px-3 mt-2 mb-2 text-sm font-semibold text-center text-black">
-                            {/* {method==="bank"?"Bank account details" : "UPI ID"}*/}
                             Enter Withdraw Details
                         </p>
                         {/* <div className="flex justify-center gap-3 px-2">
@@ -818,7 +811,7 @@ const Wallet = () => {
                 )}
 
                 {
-                    appData?.invite_system_enable ?
+                    appData?.invite_system_enable && activeTab === "addPoints" ?
                         <div className="text-center py-1">
                             <button
                                 onClick={() => navigate("/invite-and-earn")}
