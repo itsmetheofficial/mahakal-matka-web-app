@@ -435,9 +435,12 @@ const Wallet = () => {
         }
     };
     const handleWithdrawSubmit = async (e) => {
-        let maximumWithdrawAmount = user?.withdrawable_balance ? parseFloat(user?.withdrawable_balance) : 0
+        let maximumWithdrawAmount = appData?.enable_withdrawabale_balance_condition
+            ? (user?.withdrawable_balance ? parseFloat(user?.withdrawable_balance) : 0)
+            : (user?.balance ? parseFloat(user?.balance) : 0);
+
         if (withdrawAmount > maximumWithdrawAmount) {
-            toast.error("Can't withdraw more than " + user?.withdrawable_balance);
+            toast.error("Can't withdraw more than ₹" + maximumWithdrawAmount.toFixed(2));
             e.preventDefault();
             return;
         }
@@ -648,6 +651,7 @@ const Wallet = () => {
                             minAmount={appData?.min_withdraw}
                             placeholder="Withdraw Amount"
                             user={user}
+                            appData={appData}
                         />
                         <p className="px-3 mt-1 text-xs text-center text-red-600">
                             {/* आपका पैसा 5 से 10 मिनट मैं एड हो जाएगा */}
@@ -787,14 +791,24 @@ const Wallet = () => {
                         )}
                         <div className="p-3">
                             {
-                                (withdrawAmount > parseFloat(user?.withdrawable_balance)) ?
-                                    <p className="text-red-500 text-center text-sm">Your balance is not sufficient for withdrawal.</p>
-                                    : null
+                                (() => {
+                                    const maxAmount = appData?.enable_withdrawabale_balance_condition
+                                        ? parseFloat(user?.withdrawable_balance || 0)
+                                        : parseFloat(user?.balance || 0);
+                                    return withdrawAmount > maxAmount ? (
+                                        <p className="text-red-500 text-center text-sm">Your balance is not sufficient for withdrawal.</p>
+                                    ) : null;
+                                })()
                             }
                             <button
                                 type="submit"
                                 className={`w-full px-4 py-1 mt-2 text-white border-0 rounded-md 
-                                ${(withdrawAmount > parseFloat(user?.withdrawable_balance)) ? " bg-gray-500 " : "bg-greenLight"}`}
+                                ${(() => {
+                                        const maxAmount = appData?.enable_withdrawabale_balance_condition
+                                            ? parseFloat(user?.withdrawable_balance || 0)
+                                            : parseFloat(user?.balance || 0);
+                                        return withdrawAmount > maxAmount ? " bg-gray-500 " : "bg-greenLight";
+                                    })()}`}
                             // disabled={withdrawAmount>parseFloat(user?.withdrawable_balance) ? true :false}
                             >
                                 {withdrawLoading ? <Spinner /> : "Withdraw"}

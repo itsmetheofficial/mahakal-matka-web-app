@@ -58,31 +58,39 @@ const AmountSelector = ({ placeholder, minAmount, onChange, value, setPaymentMet
         </div>
       </div>
       {
-        isWithdraw ?
-          <p className="text-center text-[14px] pt-3">
-            Withdrawable Balance : {user?.withdrawable_balance ? parseInt(user?.withdrawable_balance).toFixed(2) : 0}
-          </p>
-          : null
+        isWithdraw ? (
+          appData?.enable_withdrawabale_balance_condition ? (
+            <p className="text-center text-[14px] pt-3">
+              Withdrawable Balance : ₹{user?.withdrawable_balance ? parseInt(user?.withdrawable_balance).toFixed(2) : 0}
+            </p>
+          ) : (
+            <p className="text-center text-[14px] pt-3">
+              Wallet Balance : ₹{user?.balance ? parseInt(user?.balance).toFixed(2) : 0}
+            </p>
+          )
+        ) : null
       }
-      <div className="grid grid-cols-3 gap-3 mt-3">
-        {priceList.map((price, index) => (
-          <button
-            key={index}
-            type="button"
-            onClick={() => onChange(price)}
-            className="flex relative items-center justify-center p-2 text-sm font-semibold bg-white border rounded-md shadow-md border-black/200"
-          >
-            {price}
-            {
-              appData?.self_recharge_bonus && !isWithdraw ?
-                <span className="absolute top-0 right-0 text-[10px] font-normal bg-primary text-white leading-none py-[2px] px-1 rounded">
-                  +{appData?.self_recharge_bonus > 0 ? parseFloat(appData?.self_recharge_bonus).toFixed(1) : 0}%
-                </span>
-                : null
-            }
-          </button>
-        ))}
-      </div>
+      {!isWithdraw && (
+        <div className="grid grid-cols-3 gap-3 mt-3">
+          {priceList.map((price, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => onChange(price)}
+              className="flex relative items-center justify-center p-2 text-sm font-semibold bg-white border rounded-md shadow-md border-black/200"
+            >
+              {price}
+              {
+                appData?.self_recharge_bonus ?
+                  <span className="absolute top-0 right-0 text-[10px] font-normal bg-primary text-white leading-none py-[2px] px-1 rounded">
+                    +{appData?.self_recharge_bonus > 0 ? parseFloat(appData?.self_recharge_bonus).toFixed(1) : 0}%
+                  </span>
+                  : null
+              }
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
