@@ -78,12 +78,21 @@ const WalletHistoryTable = ({
                                     <div className="mb-4 rounded-xl overflow-hidden shadow-lg p-2 border border-black/30 " key={item?.id || index}>
                                         <div className="flex justify-between py-2">
                                             <div className="px-2 w-[65%]">
-                                                <p className="text-sm text-[#000]">{item?.created_at?.length ? moment(item?.created_at).format("DD-MM-YYYY HH:mm A") : "N/A"}</p>
+                                                <p className="text-sm text-[#000] font-medium">
+                                                    {item?.created_at?.length ? moment(item?.created_at).format("Do MMM, YYYY") : "N/A"}
+                                                </p>
+                                                <p className="text-xs text-gray-600">
+                                                    {item?.created_at?.length ? moment(item?.created_at).format("hh:mm A") : ""}
+                                                </p>
                                             </div>
                                             <div className="px-2 w-[35^] flex justify-end items-center gap-1">
                                                 {
                                                     item?.status === "pending" ? (
                                                         <span>⌛</span>
+                                                    ) : item?.status === "ongoing" ? (
+                                                        <span>🔄</span>
+                                                    ) : item?.status === "pending_from_provider" ? (
+                                                        <span>💸</span>
                                                     ) : item?.status === "success" ? (
                                                         <span>✅</span>
                                                     ) : item?.status === "failed" ? (
@@ -94,6 +103,10 @@ const WalletHistoryTable = ({
                                                 {
                                                     item?.status === "pending" ? (
                                                         <span className="text-sm text-[#ffb300] font-semibold capitalize">{item?.status || "N/A"}</span>
+                                                    ) : item?.status === "ongoing" ? (
+                                                        <span className="text-sm text-blue-600 font-semibold capitalize">{item?.status || "N/A"}</span>
+                                                    ) : item?.status === "pending_from_provider" ? (
+                                                        <span className="text-sm text-[#9333ea] font-semibold capitalize">Processing</span>
                                                     ) : item?.status === "success" ? (
                                                         <span className="text-sm text-green-600 font-semibold capitalize">{item?.status || "N/A"}</span>
                                                     ) : item?.status === "failed" ? (
@@ -105,33 +118,38 @@ const WalletHistoryTable = ({
                                             </div>
                                         </div>
                                         <div className="flex justify-between pb-2">
-                                            <div className="px-2 w-1/2">
-                                                <h5 className="text-sm text-[#000] font-semibold mb-2">₹{item?.amount || "N/A"}</h5>
-                                            </div>
-                                            <div className="px-2 w-1/2">
-                                                {activeTab === "withdrawPoints" && item?.status === "failed" && item?.failed_reason ? (
-                                                    <>
-                                                        <h5 className="text-sm text-red-600 font-semibold mb-1">Failed Reason</h5>
-                                                        <p className="text-[14px] text-red-600">{item?.failed_reason}</p>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <h5 className="text-sm t mb-1">Transaction ID</h5>
-                                                        <p className="text-[14px] font-semibold">{item?.transaction_id || "N/A"}</p>
-                                                    </>
-                                                )}
+                                            <div className="px-2 w-full">
+                                                <h5 className="text-lg text-[#000] font-bold">₹{item?.amount || "N/A"}</h5>
                                             </div>
                                         </div>
-                                        <div className="flex justify-between border-t border-black py-2">
-                                            <div className="px-2 w-1/2">
-                                                <h5 className="text-sm t">Request Type</h5>
-                                                <p className="text-[14px] font-semibold capitalize">{item?.request_type || "N/A"}</p>
+                                        {activeTab === "withdrawPoints" && item?.status && item?.status !== "failed" && (
+                                            <div className={`px-2 py-2 mb-2 rounded-md ${item?.status === "success"
+                                                ? "bg-green-50 border border-green-200"
+                                                : "bg-blue-50 border border-blue-200"
+                                                }`}>
+                                                <p className={`text-sm text-center font-medium ${item?.status === "success" ? "text-green-800" : "text-blue-800"
+                                                    }`}>
+                                                    {item?.status === "pending" && (
+                                                        <span>⌛ कृपया प्रतीक्षा करें, आपका request pending है।<br /><span className="text-xs">(Please wait, your request is pending)</span></span>
+                                                    )}
+                                                    {item?.status === "ongoing" && (
+                                                        <span>🔄 आपका request approve हो गया है और जल्द ही भेजा जाएगा।<br /><span className="text-xs">(Your request is approved and will be sent soon)</span></span>
+                                                    )}
+                                                    {item?.status === "pending_from_provider" && (
+                                                        <span>💸 आपका पैसा भेजा जा रहा है, कृपया थोड़ा इंतजार करें।<br /><span className="text-xs">(Your money is being transferred, please wait)</span></span>
+                                                    )}
+                                                    {item?.status === "success" && (
+                                                        <span>✅ आपका withdrawal सफलतापूर्वक पूरा हो गया है।<br /><span className="text-xs">(Your withdrawal has been completed successfully)</span></span>
+                                                    )}
+                                                </p>
                                             </div>
-                                            <div className="px-2 w-1/2">
-                                                <h5 className="text-sm t">{activeTab === "addPoints" ? "Deposit" : "Withdraw"} Mode</h5>
-                                                <p className="text-[14px] font-semibold capitalize">{activeTab === "addPoints" ? (item?.deposit_mode || "N/A") : (item?.withdraw_mode || "N/A")}</p>
+                                        )}
+                                        {activeTab === "withdrawPoints" && item?.status === "failed" && item?.failed_reason && (
+                                            <div className="px-2 py-3 mb-2 bg-red-50 border-2 border-red-300 rounded-md">
+                                                <h5 className="text-sm text-red-700 font-bold mb-1">❌ Failed Reason (विफल होने का कारण)</h5>
+                                                <p className="text-sm text-red-600 font-medium">{item?.failed_reason}</p>
                                             </div>
-                                        </div>
+                                        )}
                                         {activeTab === "withdrawPoints" && item?.status === "success" && item?.payment_ss_link && (
                                             <div className="flex justify-center border-t border-black py-2">
                                                 <button
