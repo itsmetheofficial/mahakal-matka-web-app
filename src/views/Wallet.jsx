@@ -3,7 +3,8 @@ import AmountSelector from "../components/AmountSelector";
 import { Form, useLocation, useNavigate } from "react-router-dom";
 import Modal from "../components/Modal";
 import Logo from "../assets/imgs/Logo.png";
-import { ModalContext } from '../context/ModalContext.js'
+import { ModalContext } from '../context/ModalContext.js';
+import ResponseDialog from "../components/ResponseDialog";
 import {
     getDepositHistory,
     getWithdrawalHistory,
@@ -200,6 +201,9 @@ const Wallet = () => {
     let [depositLoading, setDepositLoading] = useState(false);
     let [qrCodeModalURL, setQRCodeModalURL] = useState(null);
     let [screenshotModalURL, setScreenshotModalURL] = useState(null);
+    let [isDialogOpen, setIsDialogOpen] = useState(false);
+    let [dialogSuccess, setDialogSuccess] = useState(false);
+    let [dialogMessage, setDialogMessage] = useState("");
 
     let defaultWithdrawDetails = localStorage.getItem("withdraw_details") ? JSON.parse(localStorage.getItem("withdraw_details")) : null;
 
@@ -218,6 +222,8 @@ const Wallet = () => {
 
     let [depositAmount, setDepositAmount] = useState("");
     let [withdrawAmount, setWithdrawAmount] = useState("");
+    let [depositAmountError, setDepositAmountError] = useState("");
+    let [withdrawAmountError, setWithdrawAmountError] = useState("");
 
     let [perPageRecords, setPerPageRecords] = useState(10);
 
@@ -348,6 +354,23 @@ const Wallet = () => {
 
     const handleDepositSubmit = async (e) => {
         e.preventDefault();
+
+        // Validate deposit amount
+        const minDeposit = parseFloat(appData.min_deposit) || 0;
+        const depositAmountValue = parseFloat(depositAmount) || 0;
+
+        if (!depositAmount || depositAmountValue <= 0) {
+            setDepositAmountError("कृपया एक वैध राशि दर्ज करें। (Please enter a valid amount)");
+            return;
+        }
+
+        if (depositAmountValue < minDeposit) {
+            setDepositAmountError(`न्यूनतम जमा राशि ₹${minDeposit} है। (Minimum deposit amount is ₹${minDeposit})`);
+            return;
+        }
+
+        setDepositAmountError("");
+
         // if(addBalanceMethod==="upi"){
         //   if(addBalanceMethodData?.upi?.length>0){
         //     console.log("UPI ID : ",addBalanceMethodData?.upi)
@@ -376,7 +399,9 @@ const Wallet = () => {
             if (paymentMethod === "auto") {
                 let { data } = await depositBalance(payload);
                 if (data.error) {
-                    toast.error(data.message);
+                    setDialogMessage(data.message);
+                    setDialogSuccess(false);
+                    setIsDialogOpen(true);
                 } else {
                     navigate("/payment/?pageName=deposit" + "&pageUrl=" + data?.response?.payment_url);
 
@@ -395,21 +420,27 @@ const Wallet = () => {
             } else if (paymentMethod === "ibr_pay") {
                 let { data } = await ibrPayUPIPaymentUrl(payload);
                 if (data.error) {
-                    toast.error(data.message);
+                    setDialogMessage(data.message);
+                    setDialogSuccess(false);
+                    setIsDialogOpen(true);
                 } else {
                     setQRCodeModalURL(data?.response?.upiIntent)
                 }
             } else if (paymentMethod === "payment_karo") {
                 let { data } = await depositBalancePaymentKaro(payload);
                 if (data.error) {
-                    toast.error(data.message);
+                    setDialogMessage(data.message);
+                    setDialogSuccess(false);
+                    setIsDialogOpen(true);
                 } else {
                     navigate("/payment/?pageName=deposit" + "&pageUrl=" + data?.response?.payment_url);
                 }
             } else if (paymentMethod === "pay_from_upi") {
                 let { data } = await depositBalancePayFromUpi(payload);
                 if (data.error) {
-                    toast.error(data.message);
+                    setDialogMessage(data.message);
+                    setDialogSuccess(false);
+                    setIsDialogOpen(true);
                 } else {
                     navigate("/payment/?pageName=deposit" + "&pageUrl=" + data?.response?.payment_url);
                 }
@@ -417,7 +448,9 @@ const Wallet = () => {
             else {
                 let { data } = await depositBalanceQRCode(payload);
                 if (data.error) {
-                    toast.error(data.message);
+                    setDialogMessage(data.message);
+                    setDialogSuccess(false);
+                    setIsDialogOpen(true);
                 } else {
                     setQRCodeModalURL(data?.response?.upiString)
                 }
@@ -428,23 +461,41 @@ const Wallet = () => {
             e.target.reset();
 
         } catch (err) {
-            toast.error(err.message);
+            setDialogMessage(err.message);
+            setDialogSuccess(false);
+            setIsDialogOpen(true);
         } finally {
             setDepositLoading(false);
             setDataLoading(false);
         }
     };
     const handleWithdrawSubmit = async (e) => {
+        e.preventDefault();
+
         let maximumWithdrawAmount = appData?.enable_withdrawabale_balance_condition
             ? (user?.withdrawable_balance ? parseFloat(user?.withdrawable_balance) : 0)
             : (user?.balance ? parseFloat(user?.balance) : 0);
 
-        if (withdrawAmount > maximumWithdrawAmount) {
-            toast.error("Can't withdraw more than ₹" + maximumWithdrawAmount.toFixed(2));
-            e.preventDefault();
+        // Validate withdrawal amount
+        const minWithdraw = parseFloat(appData?.min_withdraw) || 0;
+        const withdrawAmountValue = parseFloat(withdrawAmount) || 0;
+
+        if (!withdrawAmount || withdrawAmountValue <= 0) {
+            setWithdrawAmountError("कृपया एक वैध राशि दर्ज करें। (Please enter a valid amount)");
             return;
         }
-        e.preventDefault();
+
+        if (withdrawAmountValue < minWithdraw) {
+            setWithdrawAmountError(`न्यूनतम निकासी राशि ₹${minWithdraw} है। (Minimum withdrawal amount is ₹${minWithdraw})`);
+            return;
+        }
+
+        if (withdrawAmount > maximumWithdrawAmount) {
+            toast.error("Can't withdraw more than ₹" + maximumWithdrawAmount.toFixed(2));
+            return;
+        }
+
+        setWithdrawAmountError("");
         try {
             setWithdrawLoading(true);
             let payload = {
@@ -471,13 +522,16 @@ const Wallet = () => {
             }
             let { data } = await withdrawBalance(payload);
             if (data.error) {
-                toast.error(data.message);
+                setDialogMessage(data.message);
+                setDialogSuccess(false);
+                setIsDialogOpen(true);
             } else {
                 e.target.reset();
                 let { response } = data;
                 setDataLoading(true);
-                toggleSuccessModalOpen();
-                setSuccessMessage(data.message)
+                setDialogMessage(data.message);
+                setDialogSuccess(true);
+                setIsDialogOpen(true);
                 await _getWithdrawHistory(currentPage);
                 dispatch(
                     setAuthDataUsersSingleValue({
@@ -500,7 +554,9 @@ const Wallet = () => {
                 localStorage.setItem("withdraw_details", JSON.stringify(response?.withdraw_details));
             }
         } catch (err) {
-            toast.error(err.message);
+            setDialogMessage(err.message);
+            setDialogSuccess(false);
+            setIsDialogOpen(true);
         } finally {
             setWithdrawLoading(false);
             setDataLoading(false)
@@ -616,13 +672,29 @@ const Wallet = () => {
                     <form onSubmit={handleDepositSubmit}>
                         <AmountSelector
                             value={depositAmount}
-                            onChange={setDepositAmount}
+                            onChange={(value) => {
+                                setDepositAmount(value);
+                                setDepositAmountError("");
+                            }}
                             minAmount={appData.min_deposit}
                             placeholder="Add Amount"
                             setPaymentMethodModal={setPaymentMethodModal}
                             addBalanceMethod={addBalanceMethod}
                             appData={appData}
                         />
+
+                        {depositAmountError && (
+                            <div className="px-3 mt-2">
+                                <div className="px-3 py-3 bg-red-50 border-2 border-red-400 rounded-lg shadow-md">
+                                    <div className="flex items-center justify-center gap-2">
+                                        <span className="text-2xl">⚠️</span>
+                                        <p className="text-sm text-red-700 font-bold text-center">
+                                            {depositAmountError}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {
                             appData?.self_recharge_bonus > 0 ?
@@ -647,12 +719,29 @@ const Wallet = () => {
 
                         <AmountSelector
                             value={withdrawAmount}
-                            onChange={setWithdrawAmount}
+                            onChange={(value) => {
+                                setWithdrawAmount(value);
+                                setWithdrawAmountError("");
+                            }}
                             minAmount={appData?.min_withdraw}
                             placeholder="Withdraw Amount"
                             user={user}
                             appData={appData}
                         />
+
+                        {withdrawAmountError && (
+                            <div className="px-3 mt-2">
+                                <div className="px-3 py-3 bg-red-50 border-2 border-red-400 rounded-lg shadow-md">
+                                    <div className="flex items-center justify-center gap-2">
+                                        <span className="text-2xl">⚠️</span>
+                                        <p className="text-sm text-red-700 font-bold text-center">
+                                            {withdrawAmountError}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         <p className="px-3 mt-2 mb-2 text-sm font-semibold text-center text-black">
                             Enter Withdraw Details
                         </p>
@@ -899,6 +988,18 @@ const Wallet = () => {
                         </div>
                     </form>
                 </Modal>
+
+                <ResponseDialog
+                    isOpen={isDialogOpen}
+                    isSuccess={dialogSuccess}
+                    message={dialogMessage}
+                    onClose={() => {
+                        setIsDialogOpen(false);
+                        setDialogMessage("");
+                    }}
+                    showTelegram={dialogSuccess}
+                    telegramLink={appData?.telegram_link}
+                />
 
                 {/* <Modal isOpen={paymentMethodModal} toggle={()=>setPaymentMethodModal(false )} >
           <div style={{width:"400px",margin:"0 auto",maxWidth:"90vw"}}>

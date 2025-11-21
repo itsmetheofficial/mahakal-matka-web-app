@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import p_fs from '../assets/imgs/ic_choicepana.webp';
 import doublePannaImg from '../assets/imgs/ic_choicepana.webp';
@@ -8,6 +8,7 @@ import singleDigitImg from '../assets/imgs/signle_digit.PNG';
 import singlePannaImg from '../assets/imgs/single_pana.webp';
 import triplePannaImg from '../assets/imgs/ic_triplepana.webp';
 import { toast } from 'react-toastify';
+import ResponseDialog from '../components/ResponseDialog';
 
 const gameTypes = [
     { name: 'Single Digit', path: '/general-sub-games/single-digits', card_img: singleDigitImg, bidType: 'Single Digit', color: '#9C27B0' },
@@ -31,9 +32,13 @@ const GeneralSubGames = () => {
     const marketClose = searchParams.get('close');
     const marketOpen = searchParams.get('open');
 
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [dialogMessage, setDialogMessage] = useState("");
+
     const checkGameAvailability = (e, game) => {
         if (game?.openGame && (!(marketClose == "true") || !(marketOpen == "true"))) {
-            toast.error(game?.name + "Open game is not open at the moment!");
+            setDialogMessage(game?.name + " game is not open at the moment!");
+            setIsDialogOpen(true);
             e.preventDefault();
         }
     };
@@ -62,6 +67,16 @@ const GeneralSubGames = () => {
             <br />
             <br />
             <br />
+
+            <ResponseDialog
+                isOpen={isDialogOpen}
+                isSuccess={false}
+                message={dialogMessage}
+                onClose={() => {
+                    setIsDialogOpen(false);
+                    setDialogMessage("");
+                }}
+            />
         </div>
     );
 };

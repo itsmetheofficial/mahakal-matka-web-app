@@ -64,8 +64,6 @@ const AmountSelector = ({ placeholder, minAmount, onChange, value, setPaymentMet
           className="w-full p-2 px-4 pl-10 text-sm border border-black/30 rounded-3xl"
           placeholder={placeholder}
           value={value}
-          required
-          min={minAmount}
           onChange={(e) => onChange(e.target.value)}
         ></input>
         <div className="absolute flex items-center justify-center w-8 h-8 text-white -translate-y-1/2 rounded-full top-1/2 left-1 bg-primary">
