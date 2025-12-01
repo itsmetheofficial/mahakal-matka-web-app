@@ -219,6 +219,14 @@ const Wallet = () => {
     let [currentPage, setCurrentPage] = useState(1);
     const [accountIFSCCode, setAccountIFSCCode] = useState(defaultWithdrawDetails?.account_ifsc_code || "");
 
+    // Pending withdrawal info
+    let [pendingWithdrawalInfo, setPendingWithdrawalInfo] = useState(null);
+    let [showPendingDialog, setShowPendingDialog] = useState(false);
+    let [shouldShowPendingOnTabSwitch, setShouldShowPendingOnTabSwitch] = useState(false);
+
+    // Toggle this to true to bypass the hourly limit (for testing)
+    const BYPASS_HOURLY_LIMIT = false;
+
 
     let [depositAmount, setDepositAmount] = useState("");
     let [withdrawAmount, setWithdrawAmount] = useState("");
@@ -268,6 +276,7 @@ const Wallet = () => {
         if (data.error === false) {
             let {
                 depositHistory: { data: depositHistoryData, per_page, last_page },
+                pendingInfo
             } = data.response;
             depositHistoryData = depositHistoryData.map((dhd) => ({
                 ...dhd,
@@ -276,9 +285,49 @@ const Wallet = () => {
             setWithdrawHistoryData(depositHistoryData);
             setWithdrawLastPage(last_page);
             setPerPageRecords(per_page);
+
+            // Store pending withdrawal info
+            if (pendingInfo && pendingInfo.count > 0) {
+                setPendingWithdrawalInfo(pendingInfo);
+
+                // Check if we should show dialog based on hourly limit
+                if (shouldShowPendingDialog()) {
+                    // If currently on withdrawal tab, show immediately
+                    if (activeTab === "withdrawPoints") {
+                        setShowPendingDialog(true);
+                        localStorage.setItem('pending_withdrawal_dialog_last_shown', Date.now().toString());
+                    } else {
+                        // If on another tab, flag to show when they switch to withdrawal tab
+                        setShouldShowPendingOnTabSwitch(true);
+                    }
+                }
+            } else {
+                setPendingWithdrawalInfo(null);
+                setShouldShowPendingOnTabSwitch(false);
+            }
         } else {
             toast.error(data.message);
         }
+    };
+
+    // Check if we should show the pending withdrawal dialog
+    const shouldShowPendingDialog = () => {
+        if (BYPASS_HOURLY_LIMIT) return true;
+
+        const lastShownTime = localStorage.getItem('pending_withdrawal_dialog_last_shown');
+        if (!lastShownTime) return true;
+
+        const fifteenMinutesInMs = 15 * 60 * 1000; // 15 minutes
+        const timeDiff = Date.now() - parseInt(lastShownTime);
+
+        return timeDiff >= fifteenMinutesInMs;
+    };
+
+    // Handle switching to withdrawal tab
+    const handleWithdrawalTabClick = () => {
+        setActiveTab("withdrawPoints");
+        setCurrentPage(1);
+        // Dialog will be shown by useEffect after data loads
     };
 
     useEffect(() => {
@@ -587,6 +636,15 @@ const Wallet = () => {
         }
     }, [location.search]); // Runs whenever the query string changes
 
+    // Show pending dialog when switching to withdrawal tab (if flagged)
+    useEffect(() => {
+        if (activeTab === "withdrawPoints" && shouldShowPendingOnTabSwitch && pendingWithdrawalInfo) {
+            setShowPendingDialog(true);
+            localStorage.setItem('pending_withdrawal_dialog_last_shown', Date.now().toString());
+            setShouldShowPendingOnTabSwitch(false); // Reset flag
+        }
+    }, [activeTab, shouldShowPendingOnTabSwitch, pendingWithdrawalInfo]);
+
     return (
         <>
             <Modal isOpen={qrCodeModalURL !== null} toggle={toggleQRCodeModal}>
@@ -660,10 +718,7 @@ const Wallet = () => {
                             ? "bg-greenLight border-[1px] border-black"
                             : "bg-orange"
                             }`}
-                        onClick={() => {
-                            setActiveTab("withdrawPoints");
-                            setCurrentPage(1);
-                        }}
+                        onClick={handleWithdrawalTabClick}
                     >
                         Withdraw Balance
                     </button>
@@ -1000,6 +1055,77 @@ const Wallet = () => {
                     showTelegram={dialogSuccess}
                     telegramLink={appData?.telegram_link}
                 />
+
+                {/* Pending Withdrawal Info Dialog */}
+                <Modal isOpen={showPendingDialog} toggle={() => setShowPendingDialog(false)}>
+                    <div className="relative w-[90vw] md:max-w-[420px] mx-auto bg-white rounded-xl overflow-hidden shadow-2xl">
+                        {pendingWithdrawalInfo && (
+                            <>
+                                {/* Close Button */}
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPendingDialog(false)}
+                                    className="absolute top-3 right-3 z-10 bg-white/90 hover:bg-white rounded-full p-1.5 shadow-md transition"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-5 h-5 text-gray-700">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+
+                                {/* Header with Icon */}
+                                <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 px-6 pt-8 pb-6 text-center">
+                                    <div className="bg-white/20 backdrop-blur-sm rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                                        <div className="text-5xl">⏳</div>
+                                    </div>
+                                    <h3 className="text-white text-2xl font-bold mb-3 leading-tight">
+                                        {pendingWithdrawalInfo.count} Withdrawal{pendingWithdrawalInfo.count > 1 ? 's' : ''} Pending
+                                    </h3>
+                                    <p className="text-white text-base font-semibold mb-2">थोड़ा समय लग रहा है</p>
+                                    <div className="bg-white/10 backdrop-blur-sm inline-block px-4 py-2 rounded-full">
+                                        <p className="text-yellow-300 text-sm font-medium">
+                                            ⏰ Time Taken: {pendingWithdrawalInfo.oldest_time}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Content */}
+                                <div className="px-6 py-5 bg-gradient-to-b from-gray-50 to-white">
+
+                                    {/* Trust Message */}
+                                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl p-4 mb-4">
+                                        <div className="flex items-start gap-3">
+                                            <div className="text-3xl mt-0.5">✅</div>
+                                            <div className="flex-1">
+                                                <p className="text-sm font-bold text-green-800 mb-2">
+                                                    हम 100% भरोसेमंद हैं!
+                                                </p>
+                                                <p className="text-xs text-green-700 leading-relaxed mb-2">
+                                                    Banking की समस्या के कारण withdrawal में थोड़ा समय लग रहा है। आपका पैसा जल्द ही आपके खाते में भेज दिया जाएगा।
+                                                </p>
+                                                <div className="border-t border-green-200 pt-2 mt-2">
+                                                    <p className="text-sm font-bold text-green-800 mb-1">
+                                                        We are 100% Trusted!
+                                                    </p>
+                                                    <p className="text-xs text-green-700 leading-relaxed">
+                                                        It's taking a little time to complete the withdrawal due to banking issues. You will receive your money shortly.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Button */}
+                                    <button
+                                        onClick={() => setShowPendingDialog(false)}
+                                        className="w-full py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all text-base"
+                                    >
+                                        समझ गया / Got It
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </Modal>
 
                 {/* <Modal isOpen={paymentMethodModal} toggle={()=>setPaymentMethodModal(false )} >
           <div style={{width:"400px",margin:"0 auto",maxWidth:"90vw"}}>
