@@ -203,6 +203,7 @@ const Wallet = () => {
     let withdrawInProgressRef = useRef(false);
     let [showLocationConsent, setShowLocationConsent] = useState(false);
     let locationConsentResolver = useRef(null);
+    let [withdrawLocationRequirement, setWithdrawLocationRequirement] = useState(null);
     let [depositLoading, setDepositLoading] = useState(false);
     let [qrCodeModalURL, setQRCodeModalURL] = useState(null);
     let [screenshotModalURL, setScreenshotModalURL] = useState(null);
@@ -523,13 +524,15 @@ const Wallet = () => {
             setDataLoading(false);
         }
     };
-    const closeLocationConsent = (approved) => {
+    const finishLocationConsent = (result) => {
         setShowLocationConsent(false);
         if (locationConsentResolver.current) {
-            locationConsentResolver.current(approved);
+            locationConsentResolver.current(result);
             locationConsentResolver.current = null;
         }
     };
+
+    const closeLocationConsent = () => finishLocationConsent({ cancelled: true });
 
     const askLocationConsent = () => new Promise((resolve) => {
         locationConsentResolver.current = resolve;
@@ -547,6 +550,35 @@ const Wallet = () => {
             timeout: 20000,
         });
     });
+
+    const requestLocationFromConsentButton = () => {
+        if (!navigator.geolocation) {
+            finishLocationConsent({ error: { code: 2 } });
+            return;
+        }
+
+        // Called directly from the user's button click for Safari/iOS permission handling.
+        navigator.geolocation.getCurrentPosition(
+            (position) => finishLocationConsent({ position }),
+            (error) => finishLocationConsent({ error }),
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
+        );
+    };
+
+    const showLocationFailure = async (locationError) => {
+        const status = locationError?.code === 1 ? 'denied'
+            : locationError?.code === 3 ? 'timeout' : 'unavailable';
+        try {
+            await updateUserLocation({ status });
+        } catch (_) {
+            // The withdrawal remains stopped when the status update cannot be saved.
+        }
+        setDialogMessage(status === 'denied'
+            ? 'आपने location permission नहीं दी, इसलिए withdraw नहीं हो पाया।\nकृपया browser की location setting allow करके दोबारा प्रयास करें।'
+            : 'आपकी location नहीं मिल पाई, इसलिए withdraw नहीं हो पाया।\nकृपया device location चालू करके दोबारा प्रयास करें।');
+        setDialogSuccess(false);
+        setIsDialogOpen(true);
+    };
 
     const handleWithdrawSubmit = async (e) => {
         e.preventDefault();
@@ -576,42 +608,46 @@ const Wallet = () => {
         }
 
         setWithdrawAmountError("");
+        // The requirement is preloaded when the user opens Withdraw. Starting this
+        // immediately inside the submit event lets Safari display its native prompt.
+        const cachedRequirement = withdrawLocationRequirement;
+        const directLocationPromise = cachedRequirement?.required && !cachedRequirement.show_dialog
+            ? getCurrentLocation()
+            : null;
         try {
             withdrawInProgressRef.current = true;
             setWithdrawLoading(true);
-            const { data: locationRequirementData } = await getWithdrawLocationRequirement();
-            if (locationRequirementData.error) {
-                throw new Error(locationRequirementData.message);
+            let locationRequirement = cachedRequirement;
+            if (!locationRequirement) {
+                const { data: locationRequirementData } = await getWithdrawLocationRequirement();
+                if (locationRequirementData.error) {
+                    throw new Error(locationRequirementData.message);
+                }
+                locationRequirement = locationRequirementData.response;
+                setWithdrawLocationRequirement(locationRequirement);
             }
-            const locationRequirement = locationRequirementData.response;
             let withdrawalLocation = null;
 
             if (locationRequirement?.required) {
-                if (locationRequirement.show_dialog) {
-                    const approved = await askLocationConsent();
-                    if (!approved) return;
-                }
-
                 try {
-                    const position = await getCurrentLocation();
+                    let position;
+                    if (locationRequirement.show_dialog) {
+                        const result = await askLocationConsent();
+                        if (result?.cancelled) return;
+                        if (result?.error) throw result.error;
+                        position = result.position;
+                    } else if (directLocationPromise) {
+                        position = await directLocationPromise;
+                    } else {
+                        position = await getCurrentLocation();
+                    }
                     withdrawalLocation = {
                         latitude: position.coords.latitude,
                         longitude: position.coords.longitude,
                         accuracy_meters: position.coords.accuracy,
                     };
                 } catch (locationError) {
-                    const status = locationError.code === 1 ? 'denied'
-                        : locationError.code === 3 ? 'timeout' : 'unavailable';
-                    try {
-                        await updateUserLocation({ status });
-                    } catch (_) {
-                        // The withdrawal is still stopped if recording the denial fails.
-                    }
-                    setDialogMessage(status === 'denied'
-                        ? 'आपने location permission नहीं दी, इसलिए withdraw नहीं हो पाया।\nकृपया browser की location setting allow करके दोबारा प्रयास करें।'
-                        : 'आपकी location नहीं मिल पाई, इसलिए withdraw नहीं हो पाया।\nकृपया device location चालू करके दोबारा प्रयास करें।');
-                    setDialogSuccess(false);
-                    setIsDialogOpen(true);
+                    await showLocationFailure(locationError);
                     return;
                 }
             }
@@ -651,6 +687,7 @@ const Wallet = () => {
                 setDialogSuccess(true);
                 setIsDialogOpen(true);
                 await _getWithdrawHistory(currentPage);
+                setWithdrawLocationRequirement(null);
                 dispatch(
                     setAuthDataUsersSingleValue({
                         key: "balance",
@@ -705,6 +742,16 @@ const Wallet = () => {
             setActiveTab(tab);
         }
     }, [location.search]); // Runs whenever the query string changes
+
+    useEffect(() => {
+        if (activeTab !== "withdrawPoints") return;
+
+        getWithdrawLocationRequirement()
+            .then(({ data }) => {
+                if (!data.error) setWithdrawLocationRequirement(data.response);
+            })
+            .catch(() => setWithdrawLocationRequirement(null));
+    }, [activeTab]);
 
     // Show pending dialog when switching to withdrawal tab (if flagged)
     useEffect(() => {
@@ -1115,9 +1162,9 @@ const Wallet = () => {
                     </form>
                 </Modal>
 
-                <Modal isOpen={showLocationConsent} toggle={() => closeLocationConsent(false)} zIndex={60}>
+                <Modal isOpen={showLocationConsent} toggle={closeLocationConsent} zIndex={60}>
                     <div className="relative w-[90vw] max-w-[420px] mx-auto overflow-hidden rounded-2xl bg-white shadow-2xl">
-                        <button type="button" onClick={() => closeLocationConsent(false)}
+                        <button type="button" onClick={closeLocationConsent}
                             aria-label="Close location request"
                             className="absolute right-3 top-3 rounded-full bg-white/20 p-2 text-white hover:bg-white/30">
                             ✕
@@ -1129,11 +1176,11 @@ const Wallet = () => {
                         </div>
                         <div className="space-y-3 p-5">
                             <p className="text-center text-sm text-gray-600">नीचे बटन दबाने पर browser आपसे location की permission मांगेगा।</p>
-                            <button type="button" onClick={() => closeLocationConsent(true)}
+                            <button type="button" onClick={requestLocationFromConsentButton}
                                 className="w-full rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white hover:bg-emerald-700">
                                 Enable Location Permission
                             </button>
-                            <button type="button" onClick={() => closeLocationConsent(false)}
+                            <button type="button" onClick={closeLocationConsent}
                                 className="w-full rounded-xl border border-gray-200 px-4 py-2 font-medium text-gray-600">
                                 Cancel Withdraw
                             </button>
