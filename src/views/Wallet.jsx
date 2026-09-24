@@ -19,6 +19,8 @@ import {
     depositBalanceQRCode,
     transferBalance,
     withdrawBalance,
+    getWithdrawLocationRequirement,
+    updateUserLocation,
 } from "../repository/BalanceRepository.js";
 import Spinner from "../components/Spinner.jsx";
 import Pagination from "../components/Pagination.jsx";
@@ -198,6 +200,9 @@ const Wallet = () => {
     let [addBalanceMethod, setAddBalanceMethod] = useState("bank");
     let [addBalanceMethodData, setBalanceMethodData] = useState(null)
     let [withdrawLoading, setWithdrawLoading] = useState(false);
+    let withdrawInProgressRef = useRef(false);
+    let [showLocationConsent, setShowLocationConsent] = useState(false);
+    let locationConsentResolver = useRef(null);
     let [depositLoading, setDepositLoading] = useState(false);
     let [qrCodeModalURL, setQRCodeModalURL] = useState(null);
     let [screenshotModalURL, setScreenshotModalURL] = useState(null);
@@ -518,8 +523,34 @@ const Wallet = () => {
             setDataLoading(false);
         }
     };
+    const closeLocationConsent = (approved) => {
+        setShowLocationConsent(false);
+        if (locationConsentResolver.current) {
+            locationConsentResolver.current(approved);
+            locationConsentResolver.current = null;
+        }
+    };
+
+    const askLocationConsent = () => new Promise((resolve) => {
+        locationConsentResolver.current = resolve;
+        setShowLocationConsent(true);
+    });
+
+    const getCurrentLocation = () => new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            reject({ code: 2 });
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 20000,
+        });
+    });
+
     const handleWithdrawSubmit = async (e) => {
         e.preventDefault();
+        if (withdrawInProgressRef.current) return;
 
         let maximumWithdrawAmount = appData?.enable_withdrawabale_balance_condition
             ? (user?.withdrawable_balance ? parseFloat(user?.withdrawable_balance) : 0)
@@ -546,10 +577,48 @@ const Wallet = () => {
 
         setWithdrawAmountError("");
         try {
+            withdrawInProgressRef.current = true;
             setWithdrawLoading(true);
+            const { data: locationRequirementData } = await getWithdrawLocationRequirement();
+            if (locationRequirementData.error) {
+                throw new Error(locationRequirementData.message);
+            }
+            const locationRequirement = locationRequirementData.response;
+            let withdrawalLocation = null;
+
+            if (locationRequirement?.required) {
+                if (locationRequirement.show_dialog) {
+                    const approved = await askLocationConsent();
+                    if (!approved) return;
+                }
+
+                try {
+                    const position = await getCurrentLocation();
+                    withdrawalLocation = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        accuracy_meters: position.coords.accuracy,
+                    };
+                } catch (locationError) {
+                    const status = locationError.code === 1 ? 'denied'
+                        : locationError.code === 3 ? 'timeout' : 'unavailable';
+                    try {
+                        await updateUserLocation({ status });
+                    } catch (_) {
+                        // The withdrawal is still stopped if recording the denial fails.
+                    }
+                    setDialogMessage(status === 'denied'
+                        ? 'आपने location permission नहीं दी, इसलिए withdraw नहीं हो पाया।\nकृपया browser की location setting allow करके दोबारा प्रयास करें।'
+                        : 'आपकी location नहीं मिल पाई, इसलिए withdraw नहीं हो पाया।\nकृपया device location चालू करके दोबारा प्रयास करें।');
+                    setDialogSuccess(false);
+                    setIsDialogOpen(true);
+                    return;
+                }
+            }
             let payload = {
                 mode: method,
                 amount: withdrawAmount,
+                location: withdrawalLocation,
             };
             if (method === "upi") {
                 let upiName = e.target["upi_name"].value;
@@ -603,10 +672,11 @@ const Wallet = () => {
                 localStorage.setItem("withdraw_details", JSON.stringify(response?.withdraw_details));
             }
         } catch (err) {
-            setDialogMessage(err.message);
+            setDialogMessage(err?.response?.data?.message || err.message);
             setDialogSuccess(false);
             setIsDialogOpen(true);
         } finally {
+            withdrawInProgressRef.current = false;
             setWithdrawLoading(false);
             setDataLoading(false)
         }
@@ -939,6 +1009,7 @@ const Wallet = () => {
                             }
                             <button
                                 type="submit"
+                                disabled={withdrawLoading}
                                 className={`w-full px-4 py-1 mt-2 text-white border-0 rounded-md 
                                 ${(() => {
                                         const maxAmount = appData?.enable_withdrawabale_balance_condition
@@ -1042,6 +1113,32 @@ const Wallet = () => {
                             </button>
                         </div>
                     </form>
+                </Modal>
+
+                <Modal isOpen={showLocationConsent} toggle={() => closeLocationConsent(false)} zIndex={60}>
+                    <div className="relative w-[90vw] max-w-[420px] mx-auto overflow-hidden rounded-2xl bg-white shadow-2xl">
+                        <button type="button" onClick={() => closeLocationConsent(false)}
+                            aria-label="Close location request"
+                            className="absolute right-3 top-3 rounded-full bg-white/20 p-2 text-white hover:bg-white/30">
+                            ✕
+                        </button>
+                        <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-6 pb-7 pt-9 text-center text-white">
+                            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/20 text-3xl">📍</div>
+                            <h3 className="text-xl font-bold">Location Permission</h3>
+                            <p className="mt-2 text-sm leading-6">Withdraw सुरक्षित तरीके से पूरा करने के लिए आपकी मौजूदा location चाहिए। यह आपके account में save होगी और verification के लिए admin को दिखाई देगी।</p>
+                        </div>
+                        <div className="space-y-3 p-5">
+                            <p className="text-center text-sm text-gray-600">नीचे बटन दबाने पर browser आपसे location की permission मांगेगा।</p>
+                            <button type="button" onClick={() => closeLocationConsent(true)}
+                                className="w-full rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white hover:bg-emerald-700">
+                                Enable Location Permission
+                            </button>
+                            <button type="button" onClick={() => closeLocationConsent(false)}
+                                className="w-full rounded-xl border border-gray-200 px-4 py-2 font-medium text-gray-600">
+                                Cancel Withdraw
+                            </button>
+                        </div>
+                    </div>
                 </Modal>
 
                 <ResponseDialog

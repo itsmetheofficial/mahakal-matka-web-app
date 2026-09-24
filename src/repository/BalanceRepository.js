@@ -1,22 +1,28 @@
 import Repository from "./Repository";
 
 function withdrawBalance(payload) {
-	let queryStringArray = [];
-	if (payload.mode === 'upi') {
-		queryStringArray.push(`upi_name=${payload.upiName}`);
-		queryStringArray.push(`upi_id=${payload.upiId}`);
-	} else if (payload.mode === 'bank') {
-		queryStringArray.push(`bank_name=${payload.bankName}`);
-		queryStringArray.push(
-			`account_holder_name=${payload.accountHolderName}`
-		);
-		queryStringArray.push(`account_number=${payload.accountNumber}`);
-		queryStringArray.push(`account_ifsc_code=${payload.accountIFSCCode}`);
-	}
-	let stringWithPayload = queryStringArray.join('&');
-	return Repository.post(
-		`/withdraw-balance?amount=${payload.amount}&withdraw_mode=${payload.mode}&${stringWithPayload}`
-	);
+	return Repository.post('/withdraw-balance', {
+		amount: payload.amount,
+		withdraw_mode: payload.mode,
+		...(payload.mode === 'upi' ? {
+			upi_name: payload.upiName,
+			upi_id: payload.upiId,
+		} : {
+			bank_name: payload.bankName,
+			account_holder_name: payload.accountHolderName,
+			account_number: payload.accountNumber,
+			account_ifsc_code: payload.accountIFSCCode,
+		}),
+		...(payload.location || {}),
+	});
+}
+
+function getWithdrawLocationRequirement() {
+	return Repository.get('/withdraw-location-requirement');
+}
+
+function updateUserLocation(payload) {
+	return Repository.post('/update-user-location', payload);
 }
 
 function depositBalance(payload) {
@@ -59,6 +65,8 @@ function getReferralDetails(payload) {
 
 export {
 	withdrawBalance,
+	getWithdrawLocationRequirement,
+	updateUserLocation,
 	transferBalance,
 	getUserBalance,
 	depositBalance,
