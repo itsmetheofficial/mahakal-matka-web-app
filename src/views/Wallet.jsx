@@ -203,6 +203,9 @@ const Wallet = () => {
     let withdrawInProgressRef = useRef(false);
     let [showLocationConsent, setShowLocationConsent] = useState(false);
     let locationConsentResolver = useRef(null);
+    let [locationConsentLoading, setLocationConsentLoading] = useState(false);
+    let locationRequestInProgressRef = useRef(false);
+    let hasGrantedLocationInSessionRef = useRef(false);
     let [withdrawLocationRequirement, setWithdrawLocationRequirement] = useState(null);
     let [depositLoading, setDepositLoading] = useState(false);
     let [qrCodeModalURL, setQRCodeModalURL] = useState(null);
@@ -525,6 +528,9 @@ const Wallet = () => {
         }
     };
     const finishLocationConsent = (result) => {
+        if (result?.position) hasGrantedLocationInSessionRef.current = true;
+        locationRequestInProgressRef.current = false;
+        setLocationConsentLoading(false);
         setShowLocationConsent(false);
         if (locationConsentResolver.current) {
             locationConsentResolver.current(result);
@@ -532,7 +538,9 @@ const Wallet = () => {
         }
     };
 
-    const closeLocationConsent = () => finishLocationConsent({ cancelled: true });
+    const closeLocationConsent = () => {
+        if (!locationRequestInProgressRef.current) finishLocationConsent({ cancelled: true });
+    };
 
     const askLocationConsent = () => new Promise((resolve) => {
         locationConsentResolver.current = resolve;
@@ -604,7 +612,27 @@ const Wallet = () => {
         });
     });
 
+    const hasGrantedLocationPermission = async () => {
+        if (isAndroidApp) {
+            try {
+                return window.AndroidApp?.hasLocationPermission?.() === true;
+            } catch (_) {
+                return false;
+            }
+        }
+        if (!navigator.permissions?.query) return hasGrantedLocationInSessionRef.current;
+        try {
+            const permission = await navigator.permissions.query({ name: 'geolocation' });
+            return permission.state === 'granted';
+        } catch (_) {
+            return hasGrantedLocationInSessionRef.current;
+        }
+    };
+
     const requestLocationFromConsentButton = () => {
+        if (locationRequestInProgressRef.current) return;
+        locationRequestInProgressRef.current = true;
+        setLocationConsentLoading(true);
         if (isAndroidApp) {
             getAndroidLocation().then(
                 (position) => finishLocationConsent({ position }),
@@ -702,10 +730,14 @@ const Wallet = () => {
                 try {
                     let position;
                     if (locationRequirement.show_dialog) {
-                        const result = await askLocationConsent();
-                        if (result?.cancelled) return;
-                        if (result?.error) throw result.error;
-                        position = result.position;
+                        if (await hasGrantedLocationPermission()) {
+                            position = await (isAndroidApp ? getAndroidLocation() : getCurrentLocation());
+                        } else {
+                            const result = await askLocationConsent();
+                            if (result?.cancelled) return;
+                            if (result?.error) throw result.error;
+                            position = result.position;
+                        }
                     } else if (directLocationPromise) {
                         position = await directLocationPromise;
                     } else {
@@ -717,6 +749,7 @@ const Wallet = () => {
                         accuracy_meters: position.coords.accuracy,
                         ...(position.captureId ? { capture_id: position.captureId } : {}),
                     };
+                    hasGrantedLocationInSessionRef.current = true;
                 } catch (locationError) {
                     const mayContinue = await showLocationFailure(
                         locationError,
@@ -1251,10 +1284,12 @@ const Wallet = () => {
                         <div className="space-y-3 p-5">
                             <p className="text-center text-sm text-gray-600">नीचे बटन दबाने पर {isAndroidApp ? 'Android app' : 'browser'} आपसे location की permission मांगेगा।</p>
                             <button type="button" onClick={requestLocationFromConsentButton}
-                                className="w-full rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white hover:bg-emerald-700">
-                                Enable Location Permission
+                                disabled={locationConsentLoading}
+                                className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-75">
+                                {locationConsentLoading && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden="true" />}
+                                {locationConsentLoading ? 'Getting location...' : 'Enable Location Permission'}
                             </button>
-                            <button type="button" onClick={closeLocationConsent}
+                            <button type="button" onClick={closeLocationConsent} disabled={locationConsentLoading}
                                 className="w-full rounded-xl border border-gray-200 px-4 py-2 font-medium text-gray-600">
                                 Cancel Withdraw
                             </button>
