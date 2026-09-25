@@ -539,6 +539,59 @@ const Wallet = () => {
         setShowLocationConsent(true);
     });
 
+    const isAndroidApp = Boolean(window.AndroidApp);
+    const getAndroidLocation = () => new Promise((resolve, reject) => {
+        if (typeof window.AndroidApp?.requestLocation !== 'function') {
+            reject({ code: 2, message: 'Please update the Android app to enable location access.' });
+            return;
+        }
+        const phone = user?.phone || storedUser?.phone;
+        if (!phone || !window.crypto?.getRandomValues) {
+            reject({ code: 2, message: 'Could not start the Android location request.' });
+            return;
+        }
+        const captureId = window.crypto.randomUUID
+            ? window.crypto.randomUUID()
+            : (() => {
+                const bytes = window.crypto.getRandomValues(new Uint8Array(16));
+                bytes[6] = (bytes[6] & 0x0f) | 0x40;
+                bytes[8] = (bytes[8] & 0x3f) | 0x80;
+                const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+                return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+            })();
+        const cleanup = () => {
+            window.removeEventListener('androidLocationResult', onResult);
+            window.clearTimeout(timeout);
+        };
+        const onResult = (event) => {
+            if (event.detail?.captureId !== captureId) return;
+            cleanup();
+            if (event.detail.error) {
+                reject(event.detail.error);
+            } else {
+                resolve({
+                    coords: {
+                        latitude: event.detail.latitude,
+                        longitude: event.detail.longitude,
+                        accuracy: event.detail.accuracy,
+                    },
+                    captureId,
+                });
+            }
+        };
+        const timeout = window.setTimeout(() => {
+            cleanup();
+            reject({ code: 3, message: 'Android location request timed out.' });
+        }, 30000);
+        window.addEventListener('androidLocationResult', onResult);
+        try {
+            window.AndroidApp.requestLocation(phone, captureId);
+        } catch (_) {
+            cleanup();
+            reject({ code: 2, message: 'Could not start the Android location request.' });
+        }
+    });
+
     const getCurrentLocation = () => new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
             reject({ code: 2 });
@@ -552,6 +605,13 @@ const Wallet = () => {
     });
 
     const requestLocationFromConsentButton = () => {
+        if (isAndroidApp) {
+            getAndroidLocation().then(
+                (position) => finishLocationConsent({ position }),
+                (error) => finishLocationConsent({ error })
+            );
+            return;
+        }
         if (!navigator.geolocation) {
             finishLocationConsent({ error: { code: 2 } });
             return;
@@ -565,19 +625,29 @@ const Wallet = () => {
         );
     };
 
-    const showLocationFailure = async (locationError) => {
+    const showLocationFailure = async (locationError, allowSavedLocation = false) => {
         const status = locationError?.code === 1 ? 'denied'
             : locationError?.code === 3 ? 'timeout' : 'unavailable';
         try {
             await updateUserLocation({ status });
         } catch (_) {
-            // The withdrawal remains stopped when the status update cannot be saved.
+            // The withdrawal endpoint still verifies whether a saved location may be used.
+        }
+        if (allowSavedLocation) return true;
+        if (isAndroidApp) {
+            setDialogMessage(locationError?.message || (status === 'denied'
+                ? 'Location permission was denied. Allow it in Android settings and try again.'
+                : 'Could not get device location. Turn on location and try again.'));
+            setDialogSuccess(false);
+            setIsDialogOpen(true);
+            return false;
         }
         setDialogMessage(status === 'denied'
             ? 'आपने location permission नहीं दी, इसलिए withdraw नहीं हो पाया।\nकृपया browser की location setting allow करके दोबारा प्रयास करें।'
             : 'आपकी location नहीं मिल पाई, इसलिए withdraw नहीं हो पाया।\nकृपया device location चालू करके दोबारा प्रयास करें।');
         setDialogSuccess(false);
         setIsDialogOpen(true);
+        return false;
     };
 
     const handleWithdrawSubmit = async (e) => {
@@ -612,7 +682,7 @@ const Wallet = () => {
         // immediately inside the submit event lets Safari display its native prompt.
         const cachedRequirement = withdrawLocationRequirement;
         const directLocationPromise = cachedRequirement?.required && !cachedRequirement.show_dialog
-            ? getCurrentLocation()
+            ? (isAndroidApp ? getAndroidLocation() : getCurrentLocation())
             : null;
         try {
             withdrawInProgressRef.current = true;
@@ -639,16 +709,20 @@ const Wallet = () => {
                     } else if (directLocationPromise) {
                         position = await directLocationPromise;
                     } else {
-                        position = await getCurrentLocation();
+                        position = await (isAndroidApp ? getAndroidLocation() : getCurrentLocation());
                     }
                     withdrawalLocation = {
                         latitude: position.coords.latitude,
                         longitude: position.coords.longitude,
                         accuracy_meters: position.coords.accuracy,
+                        ...(position.captureId ? { capture_id: position.captureId } : {}),
                     };
                 } catch (locationError) {
-                    await showLocationFailure(locationError);
-                    return;
+                    const mayContinue = await showLocationFailure(
+                        locationError,
+                        locationRequirement.allow_saved_location
+                    );
+                    if (!mayContinue) return;
                 }
             }
             let payload = {
@@ -1175,7 +1249,7 @@ const Wallet = () => {
                             <p className="mt-2 text-sm leading-6">Withdraw सुरक्षित तरीके से पूरा करने के लिए आपकी मौजूदा location चाहिए। यह आपके account में save होगी और verification के लिए admin को दिखाई देगी।</p>
                         </div>
                         <div className="space-y-3 p-5">
-                            <p className="text-center text-sm text-gray-600">नीचे बटन दबाने पर browser आपसे location की permission मांगेगा।</p>
+                            <p className="text-center text-sm text-gray-600">नीचे बटन दबाने पर {isAndroidApp ? 'Android app' : 'browser'} आपसे location की permission मांगेगा।</p>
                             <button type="button" onClick={requestLocationFromConsentButton}
                                 className="w-full rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white hover:bg-emerald-700">
                                 Enable Location Permission
