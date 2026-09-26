@@ -123,7 +123,7 @@ const Sidebar = ({ toggleSideBar }) => {
       onClick: async (e) => {
         e.preventDefault();
         const shareText = `कल्याण मिलन श्रीदेवी खेलने वाले भाई ये Trusted एप डाउनलोड करें और Online खेलें!`;
-        const shareUrl = "https://play.mahakalmatka.com/auth/login?referralCode=" + user?.own_code;
+        const shareUrl = `${process.env.REACT_APP_SHARE_ORIGIN || window.location.origin}/auth/login?referralCode=${user?.own_code}`;
 
         if (navigator.share) {
           try {
