@@ -30,6 +30,8 @@ import { getAppData } from "../repository/DataRepository.js";
 import { ibrPayUPIPaymentUrl } from "../repository/PaymentRepository.js";
 import NoDataFoundImage from "../assets/imgs/noDataFound.png";
 
+const androidAppUpdateMessage = 'आप अभी पुराना ऐप इस्तेमाल कर रहे हैं, इसलिए आपका विड्रॉ नहीं हो पा रहा। नया ऐप पाने के लिए हमारे टेलीग्राम ग्रुप से जुड़ें या चैट में कस्टमर केयर से संपर्क करें। कृपया पहले पुराना ऐप अनइंस्टॉल करें फिर नया ऐप इंस्टॉल करें।\nYour app is outdated, so we can’t complete your withdrawal. Join our Telegram group or contact Customer Care in chat to get the new app. Uninstall the current app first, then install the new one.';
+
 const WalletHistoryTable = ({
     loading,
     data,
@@ -213,6 +215,7 @@ const Wallet = () => {
     let [isDialogOpen, setIsDialogOpen] = useState(false);
     let [dialogSuccess, setDialogSuccess] = useState(false);
     let [dialogMessage, setDialogMessage] = useState("");
+    let [showAndroidUpdateTelegram, setShowAndroidUpdateTelegram] = useState(false);
 
     let defaultWithdrawDetails = localStorage.getItem("withdraw_details") ? JSON.parse(localStorage.getItem("withdraw_details")) : null;
 
@@ -550,7 +553,7 @@ const Wallet = () => {
     const isAndroidApp = Boolean(window.AndroidApp);
     const getAndroidLocation = () => new Promise((resolve, reject) => {
         if (typeof window.AndroidApp?.requestLocation !== 'function') {
-            reject({ code: 2, message: 'Please update the Android app to enable location access.' });
+            reject({ code: 2, androidAppUpdateRequired: true });
             return;
         }
         const phone = user?.phone || storedUser?.phone;
@@ -654,6 +657,13 @@ const Wallet = () => {
     };
 
     const showLocationFailure = async (locationError, allowSavedLocation = false) => {
+        if (isAndroidApp && locationError?.androidAppUpdateRequired) {
+            setDialogMessage(androidAppUpdateMessage);
+            setShowAndroidUpdateTelegram(true);
+            setDialogSuccess(false);
+            setIsDialogOpen(true);
+            return false;
+        }
         const status = locationError?.code === 1 ? 'denied'
             : locationError?.code === 3 ? 'timeout' : 'unavailable';
         try {
@@ -666,6 +676,7 @@ const Wallet = () => {
             setDialogMessage(locationError?.message || (status === 'denied'
                 ? 'Location permission was denied. Allow it in Android settings and try again.'
                 : 'Could not get device location. Turn on location and try again.'));
+            setShowAndroidUpdateTelegram(false);
             setDialogSuccess(false);
             setIsDialogOpen(true);
             return false;
@@ -1304,8 +1315,10 @@ const Wallet = () => {
                     onClose={() => {
                         setIsDialogOpen(false);
                         setDialogMessage("");
+                        setShowAndroidUpdateTelegram(false);
                     }}
                     showTelegram={dialogSuccess}
+                    telegramAfterFirstLine={showAndroidUpdateTelegram}
                     telegramLink={appData?.telegram_link}
                 />
 

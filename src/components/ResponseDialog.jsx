@@ -1,7 +1,7 @@
 import React from 'react';
 import Warning from '../assets/imgs/warning.png';
 
-const ResponseDialog = ({ isOpen, isSuccess, message, onClose, showTelegram = false, telegramLink = null }) => {
+const ResponseDialog = ({ isOpen, isSuccess, message, onClose, showTelegram = false, telegramLink = null, telegramAfterFirstLine = false }) => {
     if (!isOpen) return null;
 
     const handleJoinTelegram = () => {
@@ -26,11 +26,37 @@ const ResponseDialog = ({ isOpen, isSuccess, message, onClose, showTelegram = fa
                 <div className="mb-4 mt-8">
                     {message ? (
                         <>
-                            <h2 className="text-xl font-semibold">{message.split('\n')[0]}</h2>
-                            {message.split('\n').slice(1).join('\n') && (
+                            {telegramAfterFirstLine ? (
+                                <div className="space-y-4 text-left">
+                                    <section className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                                        <p className="text-sm font-medium leading-relaxed text-gray-800">{message.split('\n')[0]}</p>
+                                    </section>
+                                    {telegramLink && (
+                                        <a
+                                            href={telegramLink}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center justify-center gap-2 rounded-xl bg-[#0088cc] px-4 py-3 font-semibold text-white shadow-md transition-colors hover:bg-[#006ba3]"
+                                        >
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.03-1.99 1.27-5.62 3.72-.53.36-1.01.54-1.44.52-.47-.01-1.38-.27-2.06-.49-.83-.27-1.49-.42-1.43-.88.03-.24.37-.49 1.02-.75 3.99-1.74 6.65-2.89 7.98-3.46 3.8-1.65 4.59-1.94 5.11-1.95.11 0 .37.03.54.17.14.12.18.28.2.41-.01.06.01.24 0 .38z" />
+                                            </svg>
+                                            Join Telegram Group
+                                        </a>
+                                    )}
+                                    <section className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+                                        <p className="text-sm leading-relaxed text-gray-700">{message.split('\n').slice(1).join(' ')}</p>
+                                    </section>
+                                </div>
+                            ) : (
+                                <>
+                                    <h2 className="text-xl font-semibold">{message.split('\n')[0]}</h2>
+                                    {message.split('\n').slice(1).join('\n') && (
                                 <div className="text-base mt-3 whitespace-pre-line leading-relaxed">
                                     {message.split('\n').slice(1).join('\n')}
                                 </div>
+                            )}
+                                </>
                             )}
                         </>
                     ) : (
