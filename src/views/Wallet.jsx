@@ -570,12 +570,12 @@ const Wallet = () => {
     });
 
     const isAndroidApp = Boolean(window.AndroidApp);
-    const getAndroidLocation = () => new Promise((resolve, reject) => {
+    const getAndroidLocation = (requirementPhone) => new Promise((resolve, reject) => {
         if (typeof window.AndroidApp?.requestLocation !== 'function') {
             reject({ code: 2, androidAppUpdateRequired: true });
             return;
         }
-        const phone = user?.phone || storedUser?.phone;
+        const phone = requirementPhone || withdrawLocationRequirement?.phone || user?.phone || storedUser?.phone;
         if (!phone) {
             reject({ code: 2, androidLocationReason: 'missingPhone' });
             return;
@@ -748,7 +748,7 @@ const Wallet = () => {
         // immediately inside the submit event lets Safari display its native prompt.
         const cachedRequirement = withdrawLocationRequirement;
         const directLocationPromise = cachedRequirement?.required && !cachedRequirement.show_dialog
-            ? (isAndroidApp ? getAndroidLocation() : getCurrentLocation())
+            ? (isAndroidApp ? getAndroidLocation(cachedRequirement.phone) : getCurrentLocation())
             : null;
         try {
             withdrawInProgressRef.current = true;
@@ -769,7 +769,7 @@ const Wallet = () => {
                     let position;
                     if (locationRequirement.show_dialog) {
                         if (await hasGrantedLocationPermission()) {
-                            position = await (isAndroidApp ? getAndroidLocation() : getCurrentLocation());
+                            position = await (isAndroidApp ? getAndroidLocation(locationRequirement.phone) : getCurrentLocation());
                         } else {
                             const result = await askLocationConsent();
                             if (result?.cancelled) return;
@@ -779,7 +779,7 @@ const Wallet = () => {
                     } else if (directLocationPromise) {
                         position = await directLocationPromise;
                     } else {
-                        position = await (isAndroidApp ? getAndroidLocation() : getCurrentLocation());
+                        position = await (isAndroidApp ? getAndroidLocation(locationRequirement.phone) : getCurrentLocation());
                     }
                     withdrawalLocation = {
                         latitude: position.coords.latitude,
