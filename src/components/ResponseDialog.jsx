@@ -1,7 +1,7 @@
 import React from 'react';
 import Warning from '../assets/imgs/warning.png';
 
-const ResponseDialog = ({ isOpen, isSuccess, message, onClose, showTelegram = false, telegramLink = null, telegramAfterFirstLine = false }) => {
+const ResponseDialog = ({ isOpen, isSuccess, message, onClose, showTelegram = false, telegramLink = null, telegramAfterFirstLine = false, bilingualMessage = false }) => {
     if (!isOpen) return null;
 
     const handleJoinTelegram = () => {
@@ -26,12 +26,12 @@ const ResponseDialog = ({ isOpen, isSuccess, message, onClose, showTelegram = fa
                 <div className="mb-4 mt-8">
                     {message ? (
                         <>
-                            {telegramAfterFirstLine ? (
+                            {telegramAfterFirstLine || bilingualMessage ? (
                                 <div className="space-y-4 text-left">
                                     <section className="rounded-xl border border-amber-200 bg-amber-50 p-4">
                                         <p className="text-sm font-medium leading-relaxed text-gray-800">{message.split('\n')[0]}</p>
                                     </section>
-                                    {telegramLink && (
+                                    {telegramAfterFirstLine && telegramLink && (
                                         <a
                                             href={telegramLink}
                                             target="_blank"

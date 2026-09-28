@@ -32,6 +32,24 @@ import NoDataFoundImage from "../assets/imgs/noDataFound.png";
 
 const androidAppUpdateMessage = 'आप अभी पुराना ऐप इस्तेमाल कर रहे हैं, इसलिए आपका विड्रॉ नहीं हो पा रहा। नया ऐप पाने के लिए हमारे टेलीग्राम ग्रुप से जुड़ें या चैट में कस्टमर केयर से संपर्क करें। कृपया पहले पुराना ऐप अनइंस्टॉल करें फिर नया ऐप इंस्टॉल करें।\nYour app is outdated, so we can’t complete your withdrawal. Join our Telegram group or contact Customer Care in chat to get the new app. Uninstall the current app first, then install the new one.';
 
+const androidLocationHelpMessages = {
+    missingPhone: 'आपके खाते का मोबाइल नंबर नहीं मिल रहा है, इसलिए लोकेशन अनुरोध शुरू नहीं हो पाया। कृपया फिर से लॉग इन करें। समस्या बनी रहे तो चैट में हमारी टीम से संपर्क करें।\nWe could not find the phone number on your account, so the location request could not start. Please log in again. If the problem continues, contact our team in chat.',
+    start: 'ऐप में लोकेशन अनुरोध शुरू करने में दिक्कत आ रही है, इसलिए अभी विड्रॉ नहीं हो पा रहा। कृपया ऐप दोबारा खोलकर कोशिश करें। समस्या बनी रहे तो चैट में हमारी टीम से संपर्क करें।\nThe app could not start the location request, so your withdrawal cannot continue yet. Please reopen the app and try again. If the problem continues, contact our team in chat.',
+    denied: 'ऐप को लोकेशन की अनुमति नहीं मिली, इसलिए अभी विड्रॉ नहीं हो पा रहा। कृपया Android सेटिंग्स में इस ऐप की लोकेशन अनुमति चालू करें और फिर कोशिश करें। जरूरत हो तो चैट में हमारी टीम से संपर्क करें।\nLocation permission was not granted, so your withdrawal cannot continue yet. Please allow location for this app in Android settings and try again. Contact our team in chat if you need help.',
+    timeout: 'आपकी लोकेशन मिलने में बहुत समय लग रहा है। कृपया फोन की लोकेशन चालू रखें और फिर कोशिश करें। समस्या बनी रहे तो चैट में हमारी टीम से संपर्क करें।\nFinding your location is taking too long. Please turn on your phone’s location and try again. If the problem continues, contact our team in chat.',
+    busy: 'एक लोकेशन अनुरोध पहले से चल रहा है। कृपया कुछ क्षण रुककर दोबारा कोशिश करें। समस्या बनी रहे तो चैट में हमारी टीम से संपर्क करें।\nA location request is already in progress. Please wait a moment and try again. If the problem continues, contact our team in chat.',
+    unavailable: 'आपके फोन की लोकेशन अभी नहीं मिल पा रही है, इसलिए विड्रॉ पूरा नहीं हो पा रहा। कृपया फोन की लोकेशन चालू करके फिर कोशिश करें। समस्या बनी रहे तो चैट में हमारी टीम से संपर्क करें।\nWe could not get your phone’s location, so your withdrawal cannot be completed yet. Please turn on location and try again. If the problem continues, contact our team in chat.',
+};
+
+const getAndroidLocationHelpMessage = (error) => {
+    if (error?.androidLocationReason === 'missingPhone') return androidLocationHelpMessages.missingPhone;
+    if (error?.androidLocationReason === 'start') return androidLocationHelpMessages.start;
+    if (error?.message === 'Another location request is in progress.') return androidLocationHelpMessages.busy;
+    if (error?.code === 1) return androidLocationHelpMessages.denied;
+    if (error?.code === 3) return androidLocationHelpMessages.timeout;
+    return androidLocationHelpMessages.unavailable;
+};
+
 const WalletHistoryTable = ({
     loading,
     data,
@@ -216,6 +234,7 @@ const Wallet = () => {
     let [dialogSuccess, setDialogSuccess] = useState(false);
     let [dialogMessage, setDialogMessage] = useState("");
     let [showAndroidUpdateTelegram, setShowAndroidUpdateTelegram] = useState(false);
+    let [showAndroidLocationHelpDialog, setShowAndroidLocationHelpDialog] = useState(false);
 
     let defaultWithdrawDetails = localStorage.getItem("withdraw_details") ? JSON.parse(localStorage.getItem("withdraw_details")) : null;
 
@@ -557,19 +576,26 @@ const Wallet = () => {
             return;
         }
         const phone = user?.phone || storedUser?.phone;
-        if (!phone || !window.crypto?.getRandomValues) {
-            reject({ code: 2, message: 'Could not start the Android location request.' });
+        if (!phone) {
+            reject({ code: 2, androidLocationReason: 'missingPhone' });
             return;
         }
-        const captureId = window.crypto.randomUUID
-            ? window.crypto.randomUUID()
-            : (() => {
-                const bytes = window.crypto.getRandomValues(new Uint8Array(16));
-                bytes[6] = (bytes[6] & 0x0f) | 0x40;
-                bytes[8] = (bytes[8] & 0x3f) | 0x80;
-                const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
-                return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-            })();
+        let captureId;
+        try {
+            if (typeof window.crypto?.getRandomValues !== 'function') throw new Error('WebView crypto unavailable');
+            captureId = window.crypto.randomUUID
+                ? window.crypto.randomUUID()
+                : (() => {
+                    const bytes = window.crypto.getRandomValues(new Uint8Array(16));
+                    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+                    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+                    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+                    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+                })();
+        } catch (_) {
+            reject({ code: 2, androidLocationReason: 'start' });
+            return;
+        }
         const cleanup = () => {
             window.removeEventListener('androidLocationResult', onResult);
             window.clearTimeout(timeout);
@@ -592,14 +618,14 @@ const Wallet = () => {
         };
         const timeout = window.setTimeout(() => {
             cleanup();
-            reject({ code: 3, message: 'Android location request timed out.' });
+            reject({ code: 3, androidLocationReason: 'timeout' });
         }, 30000);
         window.addEventListener('androidLocationResult', onResult);
         try {
             window.AndroidApp.requestLocation(phone, captureId);
         } catch (_) {
             cleanup();
-            reject({ code: 2, message: 'Could not start the Android location request.' });
+            reject({ code: 2, androidLocationReason: 'start' });
         }
     });
 
@@ -660,6 +686,7 @@ const Wallet = () => {
         if (isAndroidApp && locationError?.androidAppUpdateRequired) {
             setDialogMessage(androidAppUpdateMessage);
             setShowAndroidUpdateTelegram(true);
+            setShowAndroidLocationHelpDialog(false);
             setDialogSuccess(false);
             setIsDialogOpen(true);
             return false;
@@ -673,10 +700,9 @@ const Wallet = () => {
         }
         if (allowSavedLocation) return true;
         if (isAndroidApp) {
-            setDialogMessage(locationError?.message || (status === 'denied'
-                ? 'Location permission was denied. Allow it in Android settings and try again.'
-                : 'Could not get device location. Turn on location and try again.'));
+            setDialogMessage(getAndroidLocationHelpMessage(locationError));
             setShowAndroidUpdateTelegram(false);
+            setShowAndroidLocationHelpDialog(true);
             setDialogSuccess(false);
             setIsDialogOpen(true);
             return false;
@@ -685,6 +711,7 @@ const Wallet = () => {
             ? 'आपने location permission नहीं दी, इसलिए withdraw नहीं हो पाया।\nकृपया browser की location setting allow करके दोबारा प्रयास करें।'
             : 'आपकी location नहीं मिल पाई, इसलिए withdraw नहीं हो पाया।\nकृपया device location चालू करके दोबारा प्रयास करें।');
         setDialogSuccess(false);
+        setShowAndroidLocationHelpDialog(false);
         setIsDialogOpen(true);
         return false;
     };
@@ -1316,9 +1343,11 @@ const Wallet = () => {
                         setIsDialogOpen(false);
                         setDialogMessage("");
                         setShowAndroidUpdateTelegram(false);
+                        setShowAndroidLocationHelpDialog(false);
                     }}
                     showTelegram={dialogSuccess}
                     telegramAfterFirstLine={showAndroidUpdateTelegram}
+                    bilingualMessage={showAndroidLocationHelpDialog}
                     telegramLink={appData?.telegram_link}
                 />
 
