@@ -6,6 +6,7 @@ import { Outlet, useNavigate, useLocation, useNavigationType } from "react-route
 import Modal from "../components/Modal"
 import { useSelector } from "react-redux";
 import { useShowEverything } from "../credentials";
+import { WebPushProvider } from '../context/WebPushContext';
 
 const Main = () => {
   let navigate = useNavigate();
@@ -46,7 +47,7 @@ const Main = () => {
   let showResultsOnly = !showEverything;
 
   return (
-    <div className="font-poppins border border-black/20 border-t-0 border-b-0 overflow-hidden relative max-w-[480px] w-full mx-auto h-[100vh]">
+    <WebPushProvider><div className="font-poppins border border-black/20 border-t-0 border-b-0 overflow-hidden relative max-w-[480px] w-full mx-auto h-[100vh]">
       <Header toggleSideBar={toggleSideBar} />
       <Sidebar toggleSideBar={toggleSideBar} />
       {
@@ -91,7 +92,7 @@ const Main = () => {
           </div>
         </div>
       </Modal>
-    </div>
+    </div></WebPushProvider>
   );
 };
 

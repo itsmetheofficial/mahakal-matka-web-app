@@ -64,8 +64,10 @@ const Crossing = ({ maxAmount, onPointDelete, resetGames, updateCompleteGame, ha
             <label className="text-xs font-semibold">Crossing</label>
             <input
               type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={crossingBox1}
-              onChange={(e) => setCrossingBox1(e.target.value)}
+              onChange={(e) => setCrossingBox1(e.target.value.replace(/\D/g, ''))}
               onBlur={() => {
                 setCrossingBox2(crossingBox1);
               }}
@@ -78,8 +80,10 @@ const Crossing = ({ maxAmount, onPointDelete, resetGames, updateCompleteGame, ha
             <label className="text-xs font-semibold">Crossing</label>
             <input
               type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={crossingBox2}
-              onChange={(e) => setCrossingBox2(e.target.value)}
+              onChange={(e) => setCrossingBox2(e.target.value.replace(/\D/g, ''))}
               className="p-2 mt-1 border rounded border-black/40 outline-0 focus:border-primary"
               placeholder=""
               required
@@ -90,6 +94,7 @@ const Crossing = ({ maxAmount, onPointDelete, resetGames, updateCompleteGame, ha
           <label className="text-xs font-semibold">Balance</label>
           <input
             type="number"
+            inputMode="numeric"
             className="p-2 mt-1 border rounded border-black/40 outline-0 focus:border-primary"
             placeholder=""
             value={point}

@@ -1,10 +1,11 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Auth from "../layouts/Auth";
 import "./styles.css";
 import { FaCross } from "react-icons/fa";
 import { useSelector } from "react-redux";
-import { DeferredPromptContext } from "../context/DeferredPromptContext";
+import useInstallationOffer from "../hooks/useInstallationOffer";
+import { isIOS } from "../utils/installation";
 import Modal from "./Modal";
 import FloatingDownloadButton from "./FloatingDownloadButton";
 
@@ -14,30 +15,16 @@ const FloatingMenu = () => {
     const token = localStorage.getItem("authToken"); // Check if the user is authenticated
     const [authModalOpen, setAuthModalOpen] = useState(false); // State to control modal
     const { appData } = useSelector((state) => state.appData.appData);
+    const installationOffer = useInstallationOffer(appData);
     const [openDownloadBar, setOpenDownloadBar] = useState(false);
     const [openLoginModal, setOpenLoginModal] = useState(false);
     const [downloadError, setDownloadError] = useState(null);
     const [isDownloading, setIsDownloading] = useState(false);
 
-    let { deferredPrompt, setDeferredPrompt } = useContext(DeferredPromptContext);
 
     useEffect(() => {
         setOpenDownloadBar(localStorage.getItem("isModelOpenedAlready") === "true" ? false : true);
     }, []);
-
-    const handleInstallClick = async () => {
-        if (deferredPrompt) {
-            handleCloseDownloadBar();
-            deferredPrompt?.prompt();
-            const { outcome } = await deferredPrompt?.userChoice;
-            if (outcome === "accepted") {
-                console.log("User accepted the install prompt");
-            } else {
-                console.log("User dismissed the install prompt");
-            }
-            setDeferredPrompt(null);
-        }
-    };
 
     const handleDownloadComplete = () => {
         handleCloseDownloadBar();
@@ -145,37 +132,18 @@ const FloatingMenu = () => {
 
     return (
         <>
-            {openDownloadBar ? (
+            {openDownloadBar && !isIOS() && installationOffer.link ? (
                 <div className="floating-webAppNotification floating-menu">
                     <div className="fwnLeft">
-                        {appData?.app_update_link?.length > 0 ? (
-                            <FloatingDownloadButton
+                        <FloatingDownloadButton
                                 onDownloadComplete={handleDownloadComplete}
                                 onErrorChange={setDownloadError}
                                 onDownloadingChange={setIsDownloading}
                             />
-                        ) : (
-                            <button
-                                onClick={handleInstallClick}
-                                style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "10px",
-                                    padding: "5px 8px",
-                                    borderRadius: "4px",
-                                    background: "transparent",
-                                    border: "1px solid #0098c7",
-                                    fontWeight: "600",
-                                    color: "#0098c7",
-                                }}
-                            >
-                                Install App
-                            </button>
-                        )}
                     </div>
                     <div className="flex items-center gap-4 pl-2">
                         <p className="text-sm text-center" style={{ color: downloadError ? "#ff4444" : "inherit" }}>
-                            {downloadError || (appData?.app_update_link?.length > 0 ? "Download the app now!" : "Install as Mobile App!")}
+                            {downloadError || (installationOffer.method === 'pwa' ? "Install the web app now!" : "Download the APK now!")}
                         </p>
                         <button
                             onClick={handleCloseDownloadBar}

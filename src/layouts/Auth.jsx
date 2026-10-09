@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Modal from "../components/Modal";
 import { sendLoginOtp, verifyLoginOtp } from "../repository/AuthRepository";
 import Repository from "../repository/Repository";
@@ -8,7 +8,6 @@ import Logo from "../assets/imgs/Logo.png";
 import { getAppData } from '../repository/DataRepository';
 import { setAppData } from '../store/features/appData/appDataSlice';
 import { useDispatch, useSelector } from 'react-redux';
-import { DeferredPromptContext } from "../context/DeferredPromptContext";
 import flowConfig from '../Data/flow.json';
 
 // Function to call Android app callback on login success
@@ -30,21 +29,6 @@ const Auth = ({ isOpen, toggle }) => {
   const navigate = useNavigate();
   let dispatch = useDispatch();
   const [error, setError] = useState('');
-  let { deferredPrompt, setDeferredPrompt } = useContext(DeferredPromptContext);
-
-  const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      deferredPrompt?.prompt();
-      const { outcome } = await deferredPrompt?.userChoice;
-      if (outcome === 'accepted') {
-        console.log('User accepted the install prompt');
-      } else {
-        console.log('User dismissed the install prompt');
-      }
-      setDeferredPrompt(null);
-    }
-  };
-
   const { appData } = useSelector((state) => state.appData.appData);
 
   useEffect(() => {
@@ -118,13 +102,6 @@ const Auth = ({ isOpen, toggle }) => {
         const [appDataResponse] = await Promise.all([fetchAppDataPromise]);
 
         if (appDataResponse?.data?.error === false) {
-          window.setTimeout(() => {
-            try {
-              handleInstallClick();
-            } catch (err) {
-              console.log(err);
-            }
-          }, 2500)
           dispatch(setAppData(appDataResponse.data.response));
           navigate('/')
         } else {
@@ -195,6 +172,7 @@ const Auth = ({ isOpen, toggle }) => {
                     <span className="absolute top-1/2 left-3 transform -translate-y-1/2 text-lg text-gray-500">+91</span>
                     <input
                       type="number"
+                      inputMode="numeric"
                       placeholder="1234564578"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
@@ -234,6 +212,7 @@ const Auth = ({ isOpen, toggle }) => {
                   </p>
                   <input
                     type="number"
+                    inputMode="numeric"
                     placeholder="Enter OTP"
                     value={otp}
                     onChange={(e) => setOTP(e.target.value)}

@@ -4,7 +4,8 @@ import moment from "moment";
 import { toast } from "react-toastify";
 import Pagination from "../components/Pagination";
 import { useDispatch, useSelector } from "react-redux";
-import { setAppData } from "../store/features/appData/appDataSlice";
+import { setLastReadNotificationId } from "../store/features/appData/appDataSlice";
+import WebPushNotice from '../components/WebPushNotice';
 
 // Function to convert URLs in text to clickable links while preserving line breaks
 const linkifyText = (text) => {
@@ -40,11 +41,12 @@ const linkifyText = (text) => {
 };
 
 const Notifications = () => {
+  const dispatch = useDispatch();
   let [notifications, setNotifications] = useState([]);
   let [currentPage, setCurrentPage] = useState(1);
   let [totalPages, setTotalPages] = useState(1);
   let [loading, setLoading] = useState(false);
-  let { appData } = useSelector((state) => state.appData);
+  let { appData, lastReadNotificationId } = useSelector((state) => state.appData);
   let innerAppData = appData.appData;
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -58,10 +60,13 @@ const Notifications = () => {
         } else {
           setNotifications(data?.response?.notifications?.data);
           setTotalPages(data?.response?.notifications?.last_page);
-          localStorage.setItem(
-            "readNotifications",
-            innerAppData.notification_count
+          const latestNotificationId = Math.max(
+            lastReadNotificationId,
+            Number(innerAppData?.last_notification?.id) || 0,
+            ...(data?.response?.notifications?.data || []).map((notification) => Number(notification.id) || 0)
           );
+          dispatch(setLastReadNotificationId(latestNotificationId));
+          localStorage.setItem("lastReadNotificationId", String(latestNotificationId));
         }
       } catch (err) {
         toast.error(err);
@@ -74,6 +79,7 @@ const Notifications = () => {
 
   return (
     <div className="flex flex-col pb-8">
+      <WebPushNotice />
       <div className="p-3 pb-0">
         <div className="flex flex-col w-full gap-1">
           {loading ? (

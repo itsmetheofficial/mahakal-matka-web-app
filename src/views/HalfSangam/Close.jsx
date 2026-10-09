@@ -116,6 +116,7 @@ const Close = () => {
                                     <label className="text-md font-semibold">Ank</label>
                                     <input
                                         type="number"
+                                        inputMode="numeric"
                                         id="ank"
                                         required
                                         className="w-full p-1 mt-1 border rounded border-black/40 outline-0 focus:border-primary"
@@ -127,6 +128,7 @@ const Close = () => {
                                     <label className="text-md font-semibold">Pana</label>
                                     <input
                                         type="number"
+                                        inputMode="numeric"
                                         id="pana"
                                         required
                                         className="w-full p-1 mt-1 border rounded border-black/40 outline-0 focus:border-primary"
@@ -144,6 +146,7 @@ const Close = () => {
                                 <label className="text-md font-semibold">Amount</label>
                                 <input
                                     type="number"
+                                    inputMode="numeric"
                                     id="amount"
                                     required
                                     className="w-full p-1 mt-1 border rounded border-black/40 outline-0 focus:border-primary"

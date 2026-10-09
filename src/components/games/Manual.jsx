@@ -24,7 +24,7 @@ const Manual = ({ maxAmount, onPointChanged, handleSubmit, resetGames, isFormLoa
   }, [isSuccessfullySubmitted]);
 
   const handleJodiChange = (e, gameIdx, jodiIdx) => {
-    const value = e.target.value;
+    const value = e.target.value.replace(/\D/g, '').slice(0, 2);
     setGames((prevGames) => {
       const newGames = [...prevGames];
       newGames[gameIdx] = {
@@ -137,6 +137,10 @@ const Manual = ({ maxAmount, onPointChanged, handleSubmit, resetGames, isFormLoa
                   <td key={jodiIdx} className="w-auto border min-w-max border-primary">
                     <input
                       id={`jodi-${gameIdx}-${jodiIdx}`}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={2}
                       value={jodi}
                       min={0}
                       max={99}
@@ -153,6 +157,7 @@ const Manual = ({ maxAmount, onPointChanged, handleSubmit, resetGames, isFormLoa
                     min={appData?.min_bid_amount}
                     max={maxAmount}
                     type="number"
+                    inputMode="numeric"
                     className="w-full text-center outline-none"
                   />
                 </td>

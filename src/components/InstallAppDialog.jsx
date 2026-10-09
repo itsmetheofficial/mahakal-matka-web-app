@@ -1,12 +1,13 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import Modal from './Modal';
 import DownloadButton from './DownloadButton';
 import { useSelector } from 'react-redux';
-import { DeferredPromptContext } from '../context/DeferredPromptContext';
+import useInstallationOffer from '../hooks/useInstallationOffer';
+import { IOSInstallInstructions } from './IOSInstallDialog';
 
 const InstallAppDialog = ({ isOpen, onClose }) => {
     const { appData } = useSelector((state) => state.appData.appData);
-    const { deferredPrompt } = useContext(DeferredPromptContext);
+    const installationOffer = useInstallationOffer(appData);
 
     // Detect Android WebView via the JS bridge your WebView exposes
     const isInAndroidApp =
@@ -35,13 +36,16 @@ const InstallAppDialog = ({ isOpen, onClose }) => {
 
     return (
         <Modal
-            isOpen={isOpen && !isInAndroidApp}
+            isOpen={isOpen && !isInAndroidApp && !!installationOffer.link}
             toggle={onClose}
             zIndex={50}
             closeOnBackdrop={false}
             className="custom-modal"
             centered
         >
+            {installationOffer.isIOS ? (
+                <IOSInstallInstructions onClose={onClose} />
+            ) : (
             <div className="font-semibold text-white bg-primary rounded-lg font-hindi" style={{ width: "400px", maxWidth: "90vw" }}>
                 <div className="flex justify-between p-3 border-b border-white">
                     <h4>📱 App Install करें</h4>
@@ -63,11 +67,13 @@ const InstallAppDialog = ({ isOpen, onClose }) => {
                         <div className="text-4xl mb-3">🚀</div>
                         <h3 className="text-xl mb-2">बेहतर अनुभव पाएं!</h3>
                         <p className="text-sm opacity-90 mb-4">
-                            तेज़ गति और बेहतर सुविधाओं के लिए App install करें।
+                            {installationOffer.method === 'pwa'
+                                ? 'वेब ऐप इंस्टॉल करने के लिए नीचे बटन दबाएं।'
+                                : 'बेहतर अनुभव के लिए Android ऐप डाउनलोड करें।'}
                         </p>
                     </div>
 
-                    {appData?.app_update_link?.length > 0 || deferredPrompt ? (
+                    {installationOffer.link ? (
                         <div className="w-full">
                             <DownloadButton
                                 variant="sidebar"
@@ -82,10 +88,11 @@ const InstallAppDialog = ({ isOpen, onClose }) => {
                     )}
 
                     <div className="text-xs text-center opacity-75 mt-2">
-                        ✨ तेज़ • सुरक्षित • आसान
+                        ✨ तेज़ • आसान
                     </div>
                 </div>
             </div>
+            )}
         </Modal>
     );
 };

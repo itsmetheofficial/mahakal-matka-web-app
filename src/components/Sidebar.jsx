@@ -1,22 +1,22 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import Logo from "../assets/imgs/Logo.png";
 import { useSelector } from "react-redux";
 import Modal from "./Modal";
-import InstallButton from "../components/InstallButton";
 import DownloadButton from "./DownloadButton";
 import { logout } from "../repository/AuthRepository";
 import { toast } from "react-toastify";
 import Spinner from "./Spinner";
-import { DeferredPromptContext } from "../context/DeferredPromptContext";
+import useInstallationOffer from "../hooks/useInstallationOffer";
+import { getReferralLink } from "../utils/referral";
 
 const Sidebar = ({ toggleSideBar }) => {
   let location = useLocation();
   let { appData, user } = useSelector((state) => state.appData.appData);
+  const installationOffer = useInstallationOffer(appData);
   let { GameRate } = useSelector((state) => state.FlowApp);
   let [logoutModal, setLogoutModal] = useState(false);
   let [logoutLoading, setLogoutLoading] = useState(false);
-  const { deferredPrompt } = useContext(DeferredPromptContext);
 
   // Detect Android WebView via the JS bridge your WebView exposes
   const isInAndroidApp =
@@ -123,7 +123,11 @@ const Sidebar = ({ toggleSideBar }) => {
       onClick: async (e) => {
         e.preventDefault();
         const shareText = `कल्याण मिलन श्रीदेवी खेलने वाले भाई ये Trusted एप डाउनलोड करें और Online खेलें!`;
-        const shareUrl = `${process.env.REACT_APP_SHARE_ORIGIN || window.location.origin}/auth/login?referralCode=${user?.own_code}`;
+        const shareUrl = getReferralLink(user?.own_code || currentUser?.own_code);
+        if (!shareUrl) {
+          toast.error("Referral code is not available yet.");
+          return;
+        }
 
         if (navigator.share) {
           try {
@@ -293,8 +297,8 @@ const Sidebar = ({ toggleSideBar }) => {
             <div className="flex flex-col">
               <div className="flex items-center">
                 <div className="relative">
-                  <div className="w-16 h-16 rounded-full">
-                    <img src={Logo} className="w-full h-full object-cover" alt="Logo" />
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-[#ffcf27] border-2 border-white/80 p-1 shadow-md">
+                    <img src={Logo} className="w-full h-full object-contain" alt="Mahakal Matka" />
                   </div>
                 </div>
                 <div className="ml-3 text-sm">
@@ -316,7 +320,7 @@ const Sidebar = ({ toggleSideBar }) => {
               </Link>
 
               {/* Download Button */}
-              {(appData?.app_update_link?.length > 0 || deferredPrompt) && !isInAndroidApp && (
+              {installationOffer.link && !isInAndroidApp && (
                 <div className="mt-2">
                   <DownloadButton
                     variant="sidebar"

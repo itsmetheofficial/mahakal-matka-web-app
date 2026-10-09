@@ -3,18 +3,20 @@
 	"name": "Mahakal Matka",
 	"icons": [
 		{
-			"src": "logo192.png",
+			"src": "mahakal-icon-192-v3.png",
 			"type": "image/png",
 			"sizes": "192x192",
-			"purpose": "maskable"
+			"purpose": "any"
 		},
 		{
-			"src": "logo512.png",
+			"src": "mahakal-icon-512-v3.png",
 			"type": "image/png",
 			"sizes": "512x512"
 		}
 	],
-	"start_url": ".",
+	"id": "/",
+	"start_url": "/",
+	"scope": "/",
 	"display": "standalone",
 	"theme_color": "#000000",
 	"background_color": "#ffffff"

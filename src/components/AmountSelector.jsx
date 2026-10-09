@@ -61,6 +61,7 @@ const AmountSelector = ({ placeholder, minAmount, onChange, value, setPaymentMet
       <div className="relative w-full">
         <input
           type="number"
+          inputMode="numeric"
           className="w-full p-2 px-4 pl-10 text-sm border border-black/30 rounded-3xl"
           placeholder={placeholder}
           value={value}

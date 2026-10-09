@@ -6,9 +6,11 @@ import { useDispatch, useSelector } from "react-redux";
 import { getAppData } from "../repository/DataRepository";
 import Modal from "./Modal";
 import moment from "moment";
-import { setAppData, setReadNotifications } from "../store/features/appData/appDataSlice";
+import { setAppData, setLastReadNotificationId } from "../store/features/appData/appDataSlice";
 import { getUserBalance } from "../repository/BalanceRepository";
 import { useShowEverything } from "../credentials";
+import Pusher from "pusher-js";
+import WebPushNotice from './WebPushNotice';
 
 // Function to convert URLs in text to clickable links while preserving line breaks
 const linkifyText = (text) => {
@@ -47,19 +49,53 @@ const Header = ({ toggleSideBar }) => {
     const navigate = useNavigate();
     let location = useLocation();
     const dispatch = useDispatch();
-    let { appData: initialAppData, readNotifications, status } = useSelector(
+    let { appData: initialAppData, lastReadNotificationId, status } = useSelector(
         (state) => state.appData
     );
     let { user, appData } = initialAppData;
+    const latestNotificationId = Number(appData?.last_notification?.id) || 0;
+    const unreadNotificationCount = latestNotificationId <= lastReadNotificationId
+        ? 0
+        : Math.max(0, Number(appData?.unread_notification_count) || 0);
     const [openNotificationModal, setOpenNotificationModal] = useState(false);
     const [openLoginModal, setOpenLoginModal] = useState(false);
     const [refreshBalanceLoading, setRefreshBalanceLoading] = useState(false);
 
     useEffect(() => {
-        if (appData?.notification_count - readNotifications > 0) {
+        if (unreadNotificationCount > 0) {
             setOpenNotificationModal(true);
         }
-    }, [])
+    }, [latestNotificationId, unreadNotificationCount])
+
+    useEffect(() => {
+        if (!appData?.pusher_key || !appData?.pusher_cluster) return;
+
+        const pusher = new Pusher(appData.pusher_key, { cluster: appData.pusher_cluster });
+        const channel = pusher.subscribe('user-notifications');
+        let active = true;
+        let requestId = 0;
+
+        channel.bind('notification.changed', async ({ notification_id, action }) => {
+            if (action === 'sent' && Number(notification_id) <= Number(localStorage.getItem('lastReadNotificationId') || 0)) return;
+
+            const currentRequestId = ++requestId;
+            try {
+                const response = await getAppData();
+                if (active && currentRequestId === requestId && response?.data?.error === false) {
+                    dispatch(setAppData(response.data.response));
+                }
+            } catch (error) {
+                console.error('Could not refresh notifications', error);
+            }
+        });
+
+        return () => {
+            active = false;
+            channel.unbind('notification.changed');
+            pusher.unsubscribe('user-notifications');
+            pusher.disconnect();
+        };
+    }, [appData?.pusher_key, appData?.pusher_cluster, dispatch]);
 
     useEffect(() => {
         if (location.pathname === "/wallet") {
@@ -91,11 +127,8 @@ const Header = ({ toggleSideBar }) => {
             e.stopPropagation();
         }
         setOpenNotificationModal(false)
-        dispatch(setReadNotifications(appData?.notification_count));
-        localStorage.setItem(
-            "readNotifications",
-            appData?.notification_count
-        );
+        dispatch(setLastReadNotificationId(latestNotificationId));
+        localStorage.setItem("lastReadNotificationId", String(latestNotificationId));
     }
 
     const refreshBalance = async () => {
@@ -195,13 +228,7 @@ const Header = ({ toggleSideBar }) => {
                                         // to={isAuthenticated ? "/notifications" : "#"} // Prevent click if not authenticated
                                         onClick={
                                             isAuthenticated
-                                                ? () => {
-                                                    let notificationCounter = document.getElementById("notificationCounter");
-                                                    if (notificationCounter) {
-                                                        notificationCounter.remove();
-                                                    }
-                                                    navigate("/notifications");
-                                                }
+                                                ? () => navigate("/notifications")
                                                 : () => setOpenLoginModal(true)
                                         }
                                         style={{
@@ -222,12 +249,12 @@ const Header = ({ toggleSideBar }) => {
                                                 d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
                                             />
                                         </svg>
-                                        {(appData?.notification_count - readNotifications !== 0 && isAuthenticated) && (
+                                        {(unreadNotificationCount > 0 && isAuthenticated) && (
                                             <div
                                                 id="notificationCounter"
                                                 className="absolute w-4 h-4 rounded-full -top-1.5 -right-1.5 bg-orange flex text-[7px] items-center justify-center"
                                             >
-                                                {appData?.notification_count - readNotifications}
+                                                {unreadNotificationCount}
                                             </div>
                                         )}
                                     </button>
@@ -278,6 +305,7 @@ const Header = ({ toggleSideBar }) => {
                                         ? moment(appData?.last_notification?.created_at).format("DD-MM-YYYY HH:mm")
                                         : ""}
                                 </div>
+                                <WebPushNotice compact />
                             </div>
                         </div>
                     </Modal>

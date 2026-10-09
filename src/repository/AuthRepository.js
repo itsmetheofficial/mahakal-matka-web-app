@@ -13,8 +13,12 @@ function updateProfile(payload) {
     return Repository.post(`/update-profile?name=${payload?.name}&general_noti=${payload?.general_noti ? 1 : 0}${payload?.mpin ? `&mpin=${payload?.mpin}` : ''}`)
 }
 
+function updateName(name) {
+    return Repository.post('/update-name', { name });
+}
+
 function logout() {
-    return Repository.post(`/logout`)
+    return Repository.post(`/logout`, { web_push_subscription_id: localStorage.getItem('webPushSubscriptionId') || null })
 }
 
 export {
@@ -22,5 +26,6 @@ export {
     verifyLoginOtp,
     verifyLoginMPin,
     updateProfile,
+    updateName,
     logout
 };

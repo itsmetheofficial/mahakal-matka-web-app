@@ -78,6 +78,7 @@ const CopyPaste = ({ maxAmount, onPointDelete, resetGames, updateCompleteGame, h
           <label className="text-xs font-semibold">Number</label>
           <input
             type="number"
+            inputMode="numeric"
             className="p-2 mt-1 border rounded border-black/40 outline-0 focus:border-primary"
             placeholder=""
             required
@@ -91,6 +92,7 @@ const CopyPaste = ({ maxAmount, onPointDelete, resetGames, updateCompleteGame, h
           <label className="text-xs font-semibold">Balance</label>
           <input
             type="number"
+            inputMode="numeric"
             className="p-2 mt-1 border rounded border-black/40 outline-0 focus:border-primary"
             placeholder=""
             required

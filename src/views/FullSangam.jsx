@@ -156,6 +156,7 @@ const FullSangam = () => {
                 <label className="text-md font-semibold">Pana</label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   id="pana1"
                   required
                   className="w-full p-1 mt-1 border rounded border-black/40 outline-0 focus:border-primary"
@@ -167,6 +168,7 @@ const FullSangam = () => {
                 <label className="text-md font-semibold">Pana</label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   id="pana2"
                   required
                   className="w-full p-1 mt-1 border rounded border-black/40 outline-0 focus:border-primary"
@@ -184,6 +186,7 @@ const FullSangam = () => {
               <label className="text-md font-semibold">Amount</label>
               <input
                 type="number"
+                inputMode="numeric"
                 id="amount"
                 required
                 className="w-full p-1 mt-1 border rounded border-black/40 outline-0 focus:border-primary"

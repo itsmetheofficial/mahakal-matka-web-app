@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { FaDownload } from 'react-icons/fa';
 import { useDownload } from '../hooks/useDownload';
 import { useSelector } from 'react-redux';
+import { openPwaInstallation } from '../utils/installation';
+import useInstallationOffer from '../hooks/useInstallationOffer';
 
 const FloatingDownloadButton = ({
     onDownloadComplete = null,
@@ -10,6 +12,7 @@ const FloatingDownloadButton = ({
 }) => {
     const { appData } = useSelector((state) => state.appData.appData);
     const { downloadProgress, isDownloading, downloadError, downloadFile } = useDownload();
+    const { method, link, deferredPrompt, setDeferredPrompt } = useInstallationOffer(appData);
 
     // Detect Android WebView via the JS bridge your WebView exposes
     const isInAndroidApp =
@@ -29,9 +32,12 @@ const FloatingDownloadButton = ({
     }, [isDownloading, onDownloadingChange]);
 
     const handleDownloadClick = async () => {
-        if (appData?.app_update_link?.length > 0) {
-            const downloadUrl = appData?.app_update_link;
-            const result = await downloadFile(downloadUrl, 'MahakalMatka.apk');
+        if (link) {
+            if (method === 'pwa') {
+                await openPwaInstallation(link, deferredPrompt, setDeferredPrompt);
+                return;
+            }
+            const result = await downloadFile(link, 'MahakalMatka.apk');
 
             if (result.success && onDownloadComplete) {
                 onDownloadComplete();
@@ -42,11 +48,11 @@ const FloatingDownloadButton = ({
     const buttonText = () => {
         if (downloadError) return "Error";
         if (isDownloading) return `${downloadProgress}%`;
-        return "Download";
+        return method === 'pwa' ? 'Install Now' : 'Download APK';
     };
 
     // Don't render the button if running inside Android app
-    if (isInAndroidApp) {
+    if (isInAndroidApp || !link) {
         return null;
     }
 

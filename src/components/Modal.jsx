@@ -1,7 +1,7 @@
 import { Fragment, useRef } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 
-export default function Modal({ children, isOpen = false, toggle, zIndex = 10, closeOnBackdrop = true }) {
+export default function Modal({ children, isOpen = false, toggle, zIndex = 10, closeOnBackdrop = true, initialFocusRef }) {
   const cancelButtonRef = useRef(null);
 
   const handleClose = () => {
@@ -16,7 +16,7 @@ export default function Modal({ children, isOpen = false, toggle, zIndex = 10, c
         as="div"
         className="relative"
         style={{ zIndex: zIndex }}
-        initialFocus={cancelButtonRef}
+        initialFocus={initialFocusRef || cancelButtonRef}
         onClose={handleClose}
       >
         <Transition.Child

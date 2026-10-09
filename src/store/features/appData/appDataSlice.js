@@ -16,7 +16,7 @@ export const appDataSlice = createSlice({
       withdraw_open_time: '10:00:00',
       withdraw_close_time: '22:00:00',
     },
-    readNotifications: localStorage.getItem("readNotifications") || 0,
+    lastReadNotificationId: Number(localStorage.getItem("lastReadNotificationId")) || 0,
     status: 'idle',
     error: null
   },
@@ -24,8 +24,8 @@ export const appDataSlice = createSlice({
     setAppData: (state, action) => {
       state.appData = action.payload;
     },
-    setReadNotifications: (state, action) => {
-      state.readNotifications = action.payload;
+    setLastReadNotificationId: (state, action) => {
+      state.lastReadNotificationId = action.payload;
     },
     setAuthDataUsersSingleValue: (state, action) => {
       state.appData.user[action.payload.key] = action.payload.value;
@@ -54,6 +54,6 @@ export const appDataSlice = createSlice({
   }
 });
 
-export const { setAppData, setReadNotifications, setAuthDataUsersSingleValue } = appDataSlice.actions;
+export const { setAppData, setLastReadNotificationId, setAuthDataUsersSingleValue } = appDataSlice.actions;
 
 export default appDataSlice.reducer;

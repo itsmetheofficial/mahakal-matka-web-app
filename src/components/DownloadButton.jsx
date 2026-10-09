@@ -1,8 +1,10 @@
-import React, { useContext } from 'react';
+import React, { useState } from 'react';
 import { FaDownload } from 'react-icons/fa';
 import { useDownload } from '../hooks/useDownload';
 import { useSelector } from 'react-redux';
-import { DeferredPromptContext } from '../context/DeferredPromptContext';
+import { openPwaInstallation } from '../utils/installation';
+import useInstallationOffer from '../hooks/useInstallationOffer';
+import IOSInstallDialog from './IOSInstallDialog';
 
 const DownloadButton = ({
     variant = 'default',
@@ -13,29 +15,24 @@ const DownloadButton = ({
 }) => {
     const { appData } = useSelector((state) => state.appData.appData);
     const { downloadProgress, isDownloading, downloadError, downloadFile } = useDownload();
-    const { deferredPrompt, setDeferredPrompt } = useContext(DeferredPromptContext);
+    const { method, link, isIOS, deferredPrompt, setDeferredPrompt } = useInstallationOffer(appData);
+    const [showIOSInstructions, setShowIOSInstructions] = useState(false);
 
     const handleDownloadClick = async () => {
-        if (appData?.app_update_link?.length > 0) {
-            const downloadUrl = appData?.app_update_link;
-            const result = await downloadFile(downloadUrl, 'MahakalMatka.apk');
+        if (link) {
+            if (method === 'pwa') {
+                if (isIOS) {
+                    setShowIOSInstructions(true);
+                    return;
+                }
+                await openPwaInstallation(link, deferredPrompt, setDeferredPrompt);
+                return;
+            }
+            const result = await downloadFile(link, 'MahakalMatka.apk');
 
             if (result.success && onDownloadComplete) {
                 onDownloadComplete();
             }
-        } else if (deferredPrompt) {
-            // Handle PWA installation
-            deferredPrompt?.prompt();
-            const { outcome } = await deferredPrompt?.userChoice;
-            if (outcome === "accepted") {
-                console.log("User accepted the PWA install prompt");
-                if (onDownloadComplete) {
-                    onDownloadComplete();
-                }
-            } else {
-                console.log("User dismissed the PWA install prompt");
-            }
-            setDeferredPrompt(null);
         }
     };
 
@@ -122,25 +119,23 @@ const DownloadButton = ({
     const buttonText = () => {
         if (downloadError) return "Error";
         if (isDownloading) return `${downloadProgress}%`;
-        if (appData?.app_update_link?.length > 0) {
-            return "Download";
-        } else if (deferredPrompt) {
-            return "Install";
-        }
-        return "Download";
+        return method === 'pwa' ? 'Install Now' : 'Download APK';
     };
 
-    return (
+    if (!link) return null;
+
+    return <>
         <button
             onClick={handleDownloadClick}
-            disabled={isDownloading}
+            disabled={isDownloading || !link}
             style={getVariantStyles()}
             className={className}
         >
             <FaDownload className={config.iconSize} />
             {showText && buttonText()}
         </button>
-    );
+        <IOSInstallDialog isOpen={showIOSInstructions} onClose={() => setShowIOSInstructions(false)} />
+    </>;
 };
 
 export default DownloadButton;

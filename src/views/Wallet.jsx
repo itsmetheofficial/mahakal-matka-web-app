@@ -1165,6 +1165,7 @@ const Wallet = () => {
                                     <input
                                         className="px-2 py-1 mt-1 text-black border rounded h-9 border-black/30"
                                         type="number"
+                                        inputMode="numeric"
                                         placeholder="Enter Account Number"
                                         name="account_number"
                                         id="account_number"
@@ -1517,6 +1518,7 @@ const Wallet = () => {
                     <input
                       className="px-2 py-1 mt-1 text-black border rounded h-9 border-black/30"
                       type="number"
+                      inputMode="numeric"
                       placeholder="Enter Account Number"
                       name="account_number"
                       id="account_number"

@@ -24,6 +24,7 @@ const HarrafBox = ({
           onPointChanged(payload);
         }}
         type="number"
+        inputMode="numeric"
         className="w-full text-center outline-none"
       />
     </div>

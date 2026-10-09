@@ -262,9 +262,11 @@ const Login = () => {
                         <input
                             ref={phoneInputRef}
                             className="block w-full h-10 px-2 py-1 mt-1 text-black border rounded border-black/40"
-                            type="number"
+                            type="tel"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
                             value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
+                            onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                             maxLength={10}
                             placeholder="Enter Mobile Number"
                             disabled={isOTPScreen || isMpinScreen}
@@ -334,6 +336,7 @@ const Login = () => {
                                     ref={otpInputRef}
                                     className="block w-full h-10 px-2 py-1 mt-1 text-black border rounded border-black/40"
                                     type="number"
+                                    inputMode="numeric"
                                     value={otp}
                                     onChange={(e) => {
                                         // Only allow numbers and max 4 digits

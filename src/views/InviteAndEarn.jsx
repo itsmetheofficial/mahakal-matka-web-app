@@ -1,150 +1,92 @@
-import { useEffect, useState } from "react"
-import { getReferralDetails } from "../repository/BalanceRepository"
+import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import NoDataFoundImage from "../assets/imgs/noDataFound.png";
-import copySVG from "../assets/imgs/copy-svgrepo-com.svg";
 import { toast } from "react-toastify";
+import { FiArrowUpRight, FiCheck, FiCopy, FiGift, FiLink, FiShare2, FiUsers } from "react-icons/fi";
+import { getReferralDetails } from "../repository/BalanceRepository";
+import { getReferralLink } from "../utils/referral";
+
+const money = (value) => `₹${Number(value || 0).toLocaleString("en-IN")}`;
 
 export default function InviteAndEarn() {
-    const [referralData, setReferralData] = useState([])
-    const [loading, setLoading] = useState(false)
-     let { appData, user } = useSelector((state) => state.appData.appData);
-    useEffect(() => {
-        fetchReferralData()
-    },[])
+  const [referralData, setReferralData] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState("");
+  const { appData, user } = useSelector((state) => state.appData.appData);
+  const code = referralData?.own_code || user?.own_code || "";
+  const referralLink = getReferralLink(code);
+  const invitedUsers = referralData?.invited_users || [];
 
-    const fetchReferralData = async () => {
-        setLoading(true)
-        let res = await getReferralDetails();
-        if(res?.data?.error === false){
-            setReferralData(res?.data?.response?.referralDetails||{})
-        }
-        setLoading(false)
+  useEffect(() => {
+    let active = true;
+    getReferralDetails()
+      .then((res) => {
+        if (active && res?.data?.error === false) setReferralData(res?.data?.response?.referralDetails || {});
+        else if (active) toast.error("Could not load referral details.");
+      })
+      .catch(() => { if (active) toast.error("Could not load referral details."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  const copy = async (value, kind) => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(kind);
+      toast.success(`${kind} copied`);
+    } catch {
+      toast.error("Could not copy. Please try again.");
     }
-    const copyText = async(text)=>{
-         if (navigator.clipboard) {
-            try {
-              await navigator.clipboard.writeText(text);
-              toast?.success("Copied to clipboard");
-            } catch (error) {
-                toast?.error("Failed to copy to clipboard");
-            }
-          } else {
-            toast?.error("Clipboard API not supported");
-          }
+  };
+
+  const share = async () => {
+    if (!referralLink) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Invite & Earn", text: "Join me on Mahakal Matka with my referral link.", url: referralLink });
+      } catch (error) {
+        if (error?.name !== "AbortError") toast.error("Could not share. Please try copying the link.");
+      }
+    } else {
+      copy(referralLink, "Link");
     }
+  };
+
   return (
-    <div className="p-2">
-        <div className="text-center font-semibold py-1 text-[14px] mt-1 mb-3">
-            {`${appData?.invite_percentage_bet}% Bet कमीशन पाएं Invite करके।`}
+    <main className="min-h-full bg-[#f3f8fa] px-3 pb-20 pt-3 text-[#183747]">
+      <section className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-[#07516e] via-[#08748d] to-[#149ca6] px-5 py-6 text-white shadow-[0_12px_30px_rgba(7,81,110,.22)]">
+        <div className="absolute -right-10 -top-14 h-44 w-44 rounded-full border-[28px] border-white/10" />
+        <div className="absolute -bottom-20 right-8 h-40 w-40 rounded-full bg-white/10" />
+        <div className="relative">
+          <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold"><FiGift /> INVITE & EARN</span>
+          <h1 className="mt-4 font-hindi text-[25px] font-extrabold leading-[1.35]">दोस्तों को बुलाएं,<br />साथ में कमाएं</h1>
+          <p className="mt-2 max-w-[295px] text-sm leading-5 text-white/90">Invite friends and earn {appData?.invite_percentage_bet ?? 0}% bet commission.</p>
+          <p className="mt-1 font-hindi text-xs leading-5 text-white/80">आपके दोस्तों की बेट पर कमीशन पाएं।</p>
         </div>
-        <div className="p-3 shadow-lg border border-black/10">
-            <div className="flex">
-                <div className="w-[50%] border-r border-r-black/40 py-2">
-                    <div className="text-center text-[14px] px-2 mb-1 ">
-                        <span className="font-bold">Today's Commission</span>
-                    </div>
-                    <div className="text-center text-[14px] px-2 ">
-                        <span className="text-green-600 font-semibold">₹{referralData?.commission_earned_today}</span>
-                    </div>
-                </div>
-                <div className="w-[50%] py-2">
-                    <div className="text-center text-[14px] px-2 mb-1">
-                        <span className="font-bold">Total Commission</span>
-                    </div>
-                    <div className="text-center text-[14px] px-2 ">
-                        <span className="text-green-600 font-semibold">₹{referralData?.commission_earned_total}</span>
-                    </div>
-                </div>
-            </div>
-            <div className="flex">
-                <div className="w-[50%] border-r border-r-black/40 py-2 ">
-                    <div className="text-center text-[14px] px-2 mb-1 ">
-                        <span className="font-bold">My Refferal Code</span>
-                    </div>
-                    <div className="text-center text-[14px] px-2 flex items-center justify-center gap-2 ">
-                        <span className="">{referralData?.own_code ||"N/A"}</span>
-                         <img className="cursor-pointer" src={copySVG} alt="copy" width={15} onClick={()=>copyText(referralData?.own_code)} />
-                    </div>
-                </div>
-                <div className="w-[50%] py-2">
-                    <div className="text-center text-[14px] px-2 mb-1">
-                        <span className="font-bold">Total Invites</span>
-                    </div>
-                    <div className="text-center text-[14px] px-2 ">
-                        <span className="">{referralData?.total_invited_count ||"N/A"}</span>
-                    </div>
-                </div>
-            </div>
-            
-        </div>
+      </section>
 
-        <div className="py-3 pb-8">
-            <h4 className="text-center text-lg font-bold mb-2 mt-3">Invited Users</h4>
-            <table border={1} className="w-full">
-                <thead>
-                    <tr className="flex w-full">
-                        <th className="w-1/3 border-black/50 p-1 text-[14px]">Name</th>
-                        <th className="w-1/3 border-black/50 p-1 text-[14px]">Today's Commission</th>
-                        <th className="w-1/3 border-black/50 p-1 text-[14px]">Total Commission</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {
-                        loading ?
-                        <tr>
-                            <td className="w-full">
-                                <div className="flex justify-center w-full p-4">
-                                    <div className="grid w-full place-items-center overflow-x-scroll rounded-lg lg:overflow-visible">
-                                        <svg
-                                        className="text-gray-300 animate-spin"
-                                        viewBox="0 0 64 64"
-                                        fill="none"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="24"
-                                        height="24"
-                                        >
-                                        <path
-                                            d="M32 3C35.8083 3 39.5794 3.75011 43.0978 5.20749C46.6163 6.66488 49.8132 8.80101 52.5061 11.4939C55.199 14.1868 57.3351 17.3837 58.7925 20.9022C60.2499 24.4206 61 28.1917 61 32C61 35.8083 60.2499 39.5794 58.7925 43.0978C57.3351 46.6163 55.199 49.8132 52.5061 52.5061C49.8132 55.199 46.6163 57.3351 43.0978 58.7925C39.5794 60.2499 35.8083 61 32 61C28.1917 61 24.4206 60.2499 20.9022 58.7925C17.3837 57.3351 14.1868 55.199 11.4939 52.5061C8.801 49.8132 6.66487 46.6163 5.20749 43.0978C3.7501 39.5794 3 35.8083 3 32C3 28.1917 3.75011 24.4206 5.2075 20.9022C6.66489 17.3837 8.80101 14.1868 11.4939 11.4939C14.1868 8.80099 17.3838 6.66487 20.9022 5.20749C24.4206 3.7501 28.1917 3 32 3L32 3Z"
-                                            stroke="currentColor"
-                                            strokeWidth="5"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        ></path>
-                                        <path
-                                            d="M32 3C36.5778 3 41.0906 4.08374 45.1692 6.16256C49.2477 8.24138 52.7762 11.2562 55.466 14.9605C58.1558 18.6647 59.9304 22.9531 60.6448 27.4748C61.3591 31.9965 60.9928 36.6232 59.5759 40.9762"
-                                            stroke="currentColor"
-                                            strokeWidth="5"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            className="text-gray-600"
-                                        ></path>
-                                        </svg>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr> 
-                        :referralData?.invited_users?.length > 0 ?  
-                        referralData?.invited_users?.map((user, index) => 
-                            <tr key={index} className="w-full flex">
-                                <td className="w-1/3 text-center border-black/50 p-1 text-[14px]">{user?.name || "N/A"}</td>
-                                <td className="w-1/3 text-center border-black/50 p-1 text-[14px]">₹{user?.commission_earned_from_them_today||0}</td>
-                                <td className="w-1/3 text-center border-black/50 p-1 text-[14px]">₹{user?.commission_earned_from_them_total||0}</td>
-                            </tr>
-                        ):
-                        <tr>
-                            <td className="w-full">
-                                <div className="w-full flex py-4 flex-col items-center gap-2">
-                                    <img src={NoDataFoundImage} width={100} alt="" />
-                                    <p className="text-gray-400 font-bold text-sm">No Data Found</p>
-                                </div>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+      <section className="relative -mt-5 mx-2 grid grid-cols-3 divide-x divide-[#deeaee] rounded-2xl border border-[#e2edf1] bg-white px-2 py-4 text-center shadow-[0_8px_25px_rgba(20,65,84,.1)]" aria-label="Referral summary">
+        <div className="px-1"><p className="text-[11px] leading-4 text-slate-500">Today's<br />commission</p><p className="mt-2 text-sm font-extrabold text-[#008eae]">{loading ? "—" : money(referralData?.commission_earned_today)}</p></div>
+        <div className="px-1"><p className="text-[11px] leading-4 text-slate-500">Total<br />commission</p><p className="mt-2 text-sm font-extrabold text-[#008eae]">{loading ? "—" : money(referralData?.commission_earned_total)}</p></div>
+        <div className="px-1"><p className="text-[11px] leading-4 text-slate-500">Friends<br />invited</p><p className="mt-2 text-sm font-extrabold text-[#183747]">{loading ? "—" : referralData?.total_invited_count ?? 0}</p></div>
+      </section>
 
-    </div>
-  )
+      <section className="mt-4 rounded-[22px] border border-[#e2edf1] bg-white p-4 shadow-sm">
+        <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#e8f8fb] text-[#008eae]"><FiLink size={20} /></span><div><h2 className="font-bold">Your invite link</h2><p className="text-xs text-slate-500">Referral code is added automatically</p></div></div>
+        <div className="mt-4 rounded-xl border border-[#dce9ed] bg-[#f6fafb] px-3 py-3 text-xs text-[#41606e] break-all" aria-label="Referral link">{referralLink || (loading ? "Loading your link..." : "Referral link unavailable")}</div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <button type="button" disabled={!referralLink} onClick={() => copy(referralLink, "Link")} className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[#0098c7] px-2 text-sm font-bold text-white disabled:opacity-50">{copied === "Link" ? <FiCheck /> : <FiCopy />} Copy link</button>
+          <button type="button" disabled={!referralLink} onClick={share} className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[#0098c7] px-2 text-sm font-bold text-[#008eae] disabled:opacity-50"><FiShare2 /> Share invite</button>
+        </div>
+        <div className="mt-4 flex items-center justify-between gap-2 border-t border-[#e8f0f2] pt-4"><div><p className="text-[11px] text-slate-500">MY REFERRAL CODE</p><p className="font-extrabold tracking-[.12em] text-[#183747]">{code || "Not available"}</p></div><button type="button" disabled={!code} onClick={() => copy(code, "Code")} className="inline-flex min-h-[40px] items-center gap-2 rounded-xl bg-[#e8f8fb] px-3 text-xs font-bold text-[#008eae] disabled:opacity-50">{copied === "Code" ? <FiCheck /> : <FiCopy />} Copy code</button></div>
+      </section>
+
+      <section className="mt-5">
+        <div className="mb-3 flex items-center justify-between"><h2 className="flex items-center gap-2 text-base font-extrabold"><FiUsers className="text-[#0098c7]" /> Invited users</h2><span className="rounded-full bg-[#e4f3f7] px-2.5 py-1 text-xs font-bold text-[#008eae]">{loading ? "—" : invitedUsers.length}</span></div>
+        {loading ? <div className="rounded-2xl bg-white p-6 text-center text-sm text-slate-500">Loading invited users...</div> : invitedUsers.length ? (
+          <div className="space-y-2">{invitedUsers.map((person, index) => <article key={`${person?.name || "user"}-${index}`} className="rounded-2xl border border-[#e2edf1] bg-white p-4 shadow-sm"><div className="flex items-center gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#e8f8fb] font-extrabold text-[#008eae]">{(person?.name || "?").charAt(0).toUpperCase()}</span><p className="min-w-0 truncate font-bold">{person?.name || "N/A"}</p></div><div className="mt-3 grid grid-cols-2 gap-2 border-t border-[#edf2f4] pt-3 text-xs"><div><p className="text-slate-500">Today</p><p className="mt-0.5 font-bold text-[#008eae]">{money(person?.commission_earned_from_them_today)}</p></div><div><p className="text-slate-500">Total earned</p><p className="mt-0.5 flex items-center gap-1 font-bold text-[#008eae]">{money(person?.commission_earned_from_them_total)} <FiArrowUpRight /></p></div></div></article>)}</div>
+        ) : <div className="rounded-2xl border border-dashed border-[#bfdae3] bg-white px-5 py-8 text-center"><span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#e8f8fb] text-[#0098c7]"><FiUsers size={23} /></span><p className="mt-3 font-bold">No invites yet</p><p className="mt-1 text-xs text-slate-500">Share your link to invite your first friend.</p></div>}
+      </section>
+    </main>
+  );
 }

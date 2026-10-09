@@ -13,15 +13,23 @@ import moment from "moment";
 import Play from "./Play.jsx"
 import Modal from "../components/Modal.jsx"
 import InstallAppDialog from "../components/InstallAppDialog.jsx";
+import NamePrompt from "../components/NamePrompt.jsx";
 import { useShowEverything } from "../credentials/index.js";
+import { openPwaInstallation } from "../utils/installation";
+import useInstallationOffer from "../hooks/useInstallationOffer";
+import IOSInstallDialog from "../components/IOSInstallDialog";
 
 // const Play = React.lazy(() => import('./Play.jsx'));
 // const Modal = React.lazy(() => import('../components/Modal'));
+
+const indiaDay = () => String(Math.floor((Date.now() + 330 * 60 * 1000) / (24 * 60 * 60 * 1000)));
+const iosInstallPromptDayKey = 'iosInstallPromptDay';
 
 const Home = () => {
     const navigate = useNavigate();
     let [searchParams] = useSearchParams();
     let { appData } = useSelector((state) => state.appData.appData);
+    const installationOffer = useInstallationOffer(appData);
     let { markets } = useSelector((state) => state.markets);
     let { HomeNewView } = useSelector((state) => state.FlowApp);
     let [isOpen, setOpen] = useState(false);
@@ -30,6 +38,7 @@ const Home = () => {
     const [openLoginModal, setOpenLoginModal] = useState(false);
     const [showInstallDialog, setShowInstallDialog] = useState(false);
     const [hasShownInstallDialog, setHasShownInstallDialog] = useState(false);
+    const [showIOSInstructions, setShowIOSInstructions] = useState(false);
 
     const { showEverything } = useShowEverything();
     let showResultsOnly = !showEverything;
@@ -47,35 +56,6 @@ const Home = () => {
             localStorage.setItem("promo_type", promoType);
         }
 
-        // Also trigger install dialog check on mount
-        const checkInstallDialog = () => {
-            const currentToken = localStorage.getItem("authToken");
-            const isModelOpenedAlready = localStorage.getItem("isModelOpenedAlready") === "true";
-            const userDismissedDialog = localStorage.getItem("userDismissedInstallDialog") === "true";
-
-            console.log("Mount Install Dialog Check:", {
-                token: !!currentToken,
-                isModelOpenedAlready,
-                userDismissedDialog,
-                hasShownInstallDialog
-            });
-
-            // Show dialog if:
-            // 1. User is logged in
-            // 2. Floating download bar was NOT dismissed (isModelOpenedAlready is false)  
-            // 3. User has NOT dismissed dialog before (permanent dismissal)
-            // 4. Dialog hasn't been shown in this page load yet
-            if (currentToken && !isModelOpenedAlready && !userDismissedDialog && !hasShownInstallDialog) {
-                console.log("Showing install dialog on mount in 2 seconds...");
-                setTimeout(() => {
-                    setShowInstallDialog(true);
-                    setHasShownInstallDialog(true);
-                    console.log("Install dialog shown on mount");
-                }, 2000);
-            }
-        };
-
-        checkInstallDialog();
     }, []);
 
     const toggle = () => {
@@ -104,32 +84,29 @@ const Home = () => {
         }
     }, [hasShownModal]);
 
-    // Show install dialog once after login when isModelOpenedAlready is false
+    // Show the automatic iOS prompt once per India calendar day.
     useEffect(() => {
         const currentToken = localStorage.getItem("authToken");
         const isModelOpenedAlready = localStorage.getItem("isModelOpenedAlready") === "true";
         const userDismissedDialog = localStorage.getItem("userDismissedInstallDialog") === "true";
-
-        console.log("Install Dialog Check:", {
-            token: !!currentToken,
-            isModelOpenedAlready,
-            userDismissedDialog,
-            hasShownInstallDialog
-        });
-
-        // Show dialog when user is logged in AND floating download bar was NOT dismissed (isModelOpenedAlready is false)
-        // AND user has NOT dismissed dialog before (permanent dismissal)
-        if (currentToken && !isModelOpenedAlready && !userDismissedDialog && !hasShownInstallDialog) {
-            console.log("Showing install dialog in 2 seconds...");
-            const timer = setTimeout(() => {
-                setShowInstallDialog(true);
-                setHasShownInstallDialog(true);
-                console.log("Install dialog shown");
-            }, 2000); // Show after 2 seconds of being on homepage
-
-            return () => clearTimeout(timer);
+        if (!currentToken || !installationOffer.link || hasShownInstallDialog) return;
+        if (installationOffer.isIOS) {
+            if (localStorage.getItem(iosInstallPromptDayKey) === indiaDay()) return;
+        } else if (isModelOpenedAlready || userDismissedDialog) {
+            return;
         }
-    }, [hasShownInstallDialog]);
+
+        const timer = setTimeout(() => {
+            if (installationOffer.isIOS) {
+                if (localStorage.getItem(iosInstallPromptDayKey) === indiaDay()) return;
+                localStorage.setItem(iosInstallPromptDayKey, indiaDay());
+            }
+            setShowInstallDialog(true);
+            setHasShownInstallDialog(true);
+        }, 2000);
+
+        return () => clearTimeout(timer);
+    }, [hasShownInstallDialog, installationOffer.isIOS, installationOffer.link]);
 
     const tabHeight = "h-[1px]";
     const overallPadding = "p-0";
@@ -207,14 +184,24 @@ const Home = () => {
                 </div>
                 <div className="flex flex-col items-center justify-center p-2 mb-3 font-semibold text-center text-white bg-yellow-600 rounded-md">
                     <span>🔥 50 हजार से अधिक लोगों का भरोसा, महाकाल मटका, अब आ गया है अनलाइन एप में 🔥</span>
-                    <a
-                        href={appData?.result_history_webview_url}
+                    {installationOffer.link && <a
+                        href={installationOffer.link}
+                        onClick={event => {
+                            if (installationOffer.method === 'pwa') {
+                                event.preventDefault();
+                                if (installationOffer.isIOS) {
+                                    setShowIOSInstructions(true);
+                                    return;
+                                }
+                                openPwaInstallation(installationOffer.link, installationOffer.deferredPrompt, installationOffer.setDeferredPrompt);
+                            }
+                        }}
                         rel="noreferrer"
                         className="px-4 py-1 mt-2 rounded-2xl bg-orange"
                         target="_blank"
                     >
-                        Download Now
-                    </a>
+                        {installationOffer.method === 'pwa' ? 'Install Now' : 'Download Now'}
+                    </a>}
                 </div>
                 <div
                     className="flex flex-col justify-center p-2 mb-3 font-semibold text-center text-white bg-red-600 rounded-md"
@@ -323,6 +310,8 @@ const Home = () => {
                     isOpen={showInstallDialog}
                     onClose={() => setShowInstallDialog(false)}
                 />
+                <IOSInstallDialog isOpen={showIOSInstructions} onClose={() => setShowIOSInstructions(false)} />
+                <NamePrompt />
             </div>
         );
     }
@@ -480,6 +469,8 @@ const Home = () => {
                 isOpen={showInstallDialog}
                 onClose={() => setShowInstallDialog(false)}
             />
+            <IOSInstallDialog isOpen={showIOSInstructions} onClose={() => setShowIOSInstructions(false)} />
+            <NamePrompt />
         </>
     );
 };

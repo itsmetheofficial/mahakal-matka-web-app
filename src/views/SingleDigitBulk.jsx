@@ -92,6 +92,7 @@ const SingleDigitBulk = () => {
                     <div className='bg-white p-2 rounded shadow mb-3'>
                         <input
                             type="number"
+                            inputMode="numeric"
                             className='border p-2 text-[14px] w-full h-[40px] rounded bg-slate-100 outline-none text-center'
                             placeholder="Enter amount"
                             value={amountPerClick}

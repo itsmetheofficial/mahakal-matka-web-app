@@ -141,8 +141,8 @@ const Submit_Bet_Popup = ({ show, data, onClose, onSubmitted = () => { } }) => {
                 </div>
             )}
             {show && !loading && !notEnoughPoints && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-                    <div className="bg-[#eeeeee] w-full max-w-md mx-4 rounded-lg h-[90vh] overflow-auto">
+                <div className="fixed inset-x-0 top-0 h-[100dvh] box-border bg-black bg-opacity-50 flex justify-center items-center p-4 z-50">
+                    <div className="bg-[#eeeeee] w-full max-w-md max-h-full rounded-lg overflow-y-auto overscroll-contain">
                         <div className='w-full text-center bg-primary p-1'>
                             <h2 className="text-lg text-[#fff] font-normal">{gameType} - {new Date().toLocaleDateString('en-GB')}</h2>
                         </div>
@@ -155,7 +155,7 @@ const Submit_Bet_Popup = ({ show, data, onClose, onSubmitted = () => { } }) => {
                                     <p className="py-1 border-none font-semibold">Game</p>
                                 )}
                             </div>
-                            <div className='h-[calc(100vh-420px)] overflow-scroll'>
+                            <div className='max-h-[40dvh] overflow-y-auto'>
                                 {data.map(({ pair, value, type, gameType }, index) => (
                                     <div key={index} className="w-full flex justify-between items-center text-center text-[14px] bg-white my-1 px-1">
                                         <div className="py-2 border-none">{pair}</div>
@@ -181,7 +181,7 @@ const Submit_Bet_Popup = ({ show, data, onClose, onSubmitted = () => { } }) => {
                             </div>
                             <div className='w-full bg-[#fff] p-1 mt-1'>
                                 <p className='font-semibold'>Balance</p>
-                                <div className='flex justify-between items-center'>
+                                <div className='flex flex-wrap justify-between items-center gap-x-2'>
                                     <div className="flex justify-between py-2">
                                         <span className='text-[14px] font-semibold'>Before Deduction: </span>
                                         <span className='text-[14px]'>{walletBalanceBefore}</span>

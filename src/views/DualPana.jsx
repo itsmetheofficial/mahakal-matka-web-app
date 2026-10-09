@@ -90,6 +90,7 @@ const DualPana = () => {
                     <div className='text-[18px] font-semibold bg-[#e4ae39] w-[50px] h-[40px] flex justify-center items-center text-[#fff]'>{pair}</div>
                     <input
                       type="number"
+                      inputMode="numeric"
                       className='border p-2 text-[14px] w-full border-none bg-slate-200 h-[40px] text-center outline-none'
                       maxLength="2"
                       placeholder="Enter Amount"

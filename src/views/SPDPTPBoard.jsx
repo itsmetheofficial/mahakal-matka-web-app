@@ -204,6 +204,8 @@ const SPDPTPBoard = () => {
                             <div className='flex-1'>
                                 <input
                                     type="text"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
                                     className='border p-2 text-[14px] w-full h-[38px] rounded bg-slate-100 outline-none text-center'
                                     placeholder="Digit"
                                     value={digit}
@@ -214,6 +216,7 @@ const SPDPTPBoard = () => {
                             <div className='flex-1'>
                                 <input
                                     type="number"
+                                    inputMode="numeric"
                                     className='border p-2 text-[14px] w-full h-[38px] rounded bg-slate-100 outline-none text-center'
                                     placeholder="Points"
                                     value={points}
