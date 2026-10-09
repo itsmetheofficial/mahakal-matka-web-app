@@ -51,9 +51,21 @@ const Home = () => {
         document.title = "Home | Mahakal Matka";
 
         // Capture and store promo_type from 'r' URL parameter
-        const promoType = searchParams.get("r");
+        const promoType = searchParams.get("r")?.trim().toLowerCase();
         if (promoType?.trim()?.length > 0) {
-            localStorage.setItem("promo_type", promoType);
+            localStorage.setItem("campaign_code_v2", promoType);
+            if (/^[a-z][a-z0-9_-]{0,63}$/.test(promoType) && crypto.randomUUID) {
+                let visitorId = document.cookie.split('; ').find(value => value.startsWith('marketing_visitor_id='))?.split('=')[1];
+                if (!visitorId) {
+                    visitorId = crypto.randomUUID();
+                    document.cookie = `marketing_visitor_id=${visitorId};path=/;domain=.mahakalmatka.com;max-age=2592000;SameSite=Lax;Secure`;
+                }
+                fetch('https://api.mahakalmatka.com/api/marketing/event', {
+                    method: 'POST', keepalive: true,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ event_id: crypto.randomUUID(), visitor_id: visitorId, code: promoType, type: 'arrival' })
+                }).catch(() => {});
+            }
         }
 
     }, []);
@@ -163,12 +175,20 @@ const Home = () => {
                         </button>
                     </div>
                 </div>
-                <marquee
-                    className="mt-1 text-white rounded-md bg-orange"
-                    scrollamount="6"
-                >
-                    {appData?.homepage_message}
-                </marquee>
+                {appData?.home_second_message_type === 'image' ? (
+                    appData?.home_second_message_image_url && (
+                        <img
+                            src={appData.home_second_message_image_url}
+                            alt="Home page message"
+                            className="w-full mt-1 rounded-md cursor-pointer"
+                            onClick={() => token ? openLink(appData?.homepage_button_url) : setOpenLoginModal(true)}
+                        />
+                    )
+                ) : (
+                    <marquee className="mt-1 text-white rounded-md bg-orange" scrollamount="6">
+                        {appData?.homepage_message}
+                    </marquee>
+                )}
                 <div className="flex flex-col items-center justify-center p-2 mb-3 font-semibold text-center text-white bg-black border rounded-md shadow-sm">
                     <div
                         dangerouslySetInnerHTML={{
@@ -319,15 +339,25 @@ const Home = () => {
     return (
         <>
             <div className="p-2 pt-1 pb-5">
-                <div className="w-full rounded-md overflow-hidden mb-2">
-                    <img src={appData?.homepage_image_url} className="cursor-pointer" alt="" onClick={() => token ? openLink(appData?.slider_url) : setAuthModalOpen(true)} />
-                </div>
+                {appData?.show_homepage_slider !== false && appData?.show_homepage_slider !== 0 && appData?.homepage_image_url && (
+                    <div className="w-full rounded-md overflow-hidden mb-2">
+                        <img src={appData.homepage_image_url} className="cursor-pointer" alt="" onClick={() => token ? openLink(appData?.slider_url) : setAuthModalOpen(true)} />
+                    </div>
+                )}
                 {
-                    (appData?.homepage_message?.length > 0 && !showResultsOnly) ?
-                        <div className="flex flex-col items-center justify-center p-2 mb-2 font-semibold text-center text-white bg-yellow-600 rounded-md">
-                            <span>{appData.homepage_message}</span>
-                            {
-                                appData?.homepage_button_text?.length > 0 ?
+                    !showResultsOnly && (appData?.home_second_message_type === 'image'
+                        ? appData?.home_second_message_image_url && (
+                            <img
+                                src={appData.home_second_message_image_url}
+                                alt="Home page message"
+                                className="w-full mb-2 rounded-md cursor-pointer"
+                                onClick={() => token ? openLink(appData?.homepage_button_url) : setOpenLoginModal(true)}
+                            />
+                        )
+                        : appData?.homepage_message?.length > 0 && (
+                            <div className="flex flex-col items-center justify-center p-2 mb-2 font-semibold text-center text-white bg-yellow-600 rounded-md">
+                                <span>{appData.homepage_message}</span>
+                                {appData?.homepage_button_text?.length > 0 && (
                                     <button
                                         onClick={() => token ? openLink(appData?.homepage_button_url) : setOpenLoginModal(true)}
                                         rel="noreferrer"
@@ -336,10 +366,9 @@ const Home = () => {
                                     >
                                         {appData.homepage_button_text}
                                     </button>
-                                    : null
-                            }
-                        </div>
-                        : null
+                                )}
+                            </div>
+                        ))
 
                 }
 

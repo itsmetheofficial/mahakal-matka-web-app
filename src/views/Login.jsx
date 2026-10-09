@@ -32,7 +32,7 @@ const Login = () => {
     let [mpin, setMpin] = useState("");
     let [newMpin, setNewMpin] = useState("");
     let [referralCode, setRefferalCode] = useState(searchParams?.get("referralCode") || "")
-    let [promoType, setPromoType] = useState(localStorage.getItem("promo_type") || "")
+    let [promoType, setPromoType] = useState(localStorage.getItem("campaign_code_v2") || "")
 
     const phoneInputRef = useRef(null);
     const otpInputRef = useRef(null);
@@ -134,6 +134,7 @@ const Login = () => {
                 localStorage.setItem("withdraw_details", JSON.stringify(user?.withdraw_details));
 
                 // Clear promo_type after successful login
+                localStorage.removeItem("campaign_code_v2");
                 localStorage.removeItem("promo_type");
 
                 navigate("/");
@@ -178,6 +179,7 @@ const Login = () => {
                 localStorage.setItem("withdraw_details", JSON.stringify(user?.withdraw_details));
 
                 // Clear promo_type after successful login
+                localStorage.removeItem("campaign_code_v2");
                 localStorage.removeItem("promo_type");
 
                 navigate("/");
