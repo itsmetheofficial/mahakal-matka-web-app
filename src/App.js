@@ -56,8 +56,17 @@ import MaintenancePage from './views/MaintenancePage';
 import OfflinePage from './views/OfflinePage';
 import InviteAndEarn from './views/InviteAndEarn';
 import PaymentPage from './views/PaymentPage';
+import ExternalGame, { ExternalGameReturn } from './views/ExternalGame';
 
 export const routes = [
+    {
+        path: '/external-games/aviator',
+        element: <ProtectedRoute><ExternalGame /></ProtectedRoute>,
+    },
+    {
+        path: '/external-games/return',
+        element: <ExternalGameReturn />,
+    },
 	{
 		element: <Main />,
 		children: [

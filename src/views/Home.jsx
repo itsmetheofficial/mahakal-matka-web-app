@@ -136,6 +136,18 @@ const Home = () => {
         }
     };
 
+    const openHomepageButton = () => {
+        if (!token) {
+            setOpenLoginModal(true);
+            return;
+        }
+        if (appData?.homepage_button_url_type === 'external') {
+            navigate('/external-games/aviator');
+        } else {
+            openLink(appData?.homepage_button_url);
+        }
+    };
+
     const openLink = (url) => {
         if (url?.includes("http")) {
             window.open(url, "_blank");
@@ -181,7 +193,7 @@ const Home = () => {
                             src={appData.home_second_message_image_url}
                             alt="Home page message"
                             className="w-full mt-1 rounded-md cursor-pointer"
-                            onClick={() => token ? openLink(appData?.homepage_button_url) : setOpenLoginModal(true)}
+                            onClick={openHomepageButton}
                         />
                     )
                 ) : (
@@ -351,7 +363,7 @@ const Home = () => {
                                 src={appData.home_second_message_image_url}
                                 alt="Home page message"
                                 className="w-full mb-2 rounded-md cursor-pointer"
-                                onClick={() => token ? openLink(appData?.homepage_button_url) : setOpenLoginModal(true)}
+                                onClick={openHomepageButton}
                             />
                         )
                         : appData?.homepage_message?.length > 0 && (
@@ -359,7 +371,7 @@ const Home = () => {
                                 <span>{appData.homepage_message}</span>
                                 {appData?.homepage_button_text?.length > 0 && (
                                     <button
-                                        onClick={() => token ? openLink(appData?.homepage_button_url) : setOpenLoginModal(true)}
+                                        onClick={openHomepageButton}
                                         rel="noreferrer"
                                         className="px-4 py-1 mt-2 rounded-2xl bg-orange"
                                         target="_blank"

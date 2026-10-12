@@ -72,34 +72,45 @@ const GeneralHistory = () => {
     }, []);
 
     return (
-        <>
-        <div className="bg-primary sticky top-0 border-t border-white text-white flex justify-between items-center p-2 cursor-pointer select-none" onClick={() => setShowFilters(!showFilters)}>
-            <h3 className="text-md font-semibold">Filters</h3>
-            <span className="text-md transition-transform duration-300">
-                {showFilters ? "▲" : "▼"}
-            </span>
-        </div>
-        <div
-            className={`overflow-hidden transition-all duration-500 ${showFilters ? "max-h-[1000px]" : "max-h-0"}`}
-        >
-            <div className="flex p-3 text-white bg-primary">
+        <section className="px-3 pb-5 text-slate-900">
+            <div className="flex items-center justify-between gap-3 py-3">
+                <div>
+                    <h2 className="text-lg font-bold">Kalyan history</h2>
+                    <p className="text-xs text-slate-500">Your market bets and results</p>
+                </div>
+                <button
+                    type="button"
+                    onClick={() => setShowFilters(value => !value)}
+                    aria-expanded={showFilters}
+                    aria-controls="kalyan-history-filters"
+                    className="flex items-center gap-2 rounded-lg border border-primary px-3 py-2 text-xs font-semibold text-primary"
+                >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                        <path d="M4 7h16M7 12h10M10 17h4" strokeLinecap="round" />
+                    </svg>
+                    Filters
+                    {(marketId || date || gameType !== 'all' || session !== 'all' || !['ALL', '0'].includes(status)) && <span className="h-2 w-2 rounded-full bg-primary" aria-label="Filters selected" />}
+                </button>
+            </div>
+            <div id="kalyan-history-filters" hidden={!showFilters} className="mb-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
                 <form
                     onSubmit={(e) => {
                         e.preventDefault();
+                        setShowFilters(false);
                         if (currentPage === 1) fetchCurrentHistory();
                         else setCurrentPage(1);
                     }}
                     className="flex items-end w-full gap-4"
                 >
-                    <div className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+                    <div className="grid w-full grid-cols-2 gap-3">
                         {/* Market (Game) Filter */}
                         <div className="flex flex-col">
-                            <label className="font-semibold text-[14px]">Game</label>
+                            <label className="font-semibold text-xs text-slate-600">Game</label>
                             <select
                                 value={marketId}
                                 name="marketId"
                                 onChange={(e) => setMarketId(e.target.value)}
-                                className="h-8 px-2 py-1 text-black border-0 rounded"
+                                className="mt-1 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900"
                             >
                                 <option value="">Game</option>
                                 {markets
@@ -114,12 +125,12 @@ const GeneralHistory = () => {
 
                         {/* Game Type Filter */}
                         <div className="flex flex-col">
-                            <label className="font-semibold text-[14px]">Game Type</label>
+                            <label className="font-semibold text-xs text-slate-600">Game Type</label>
                             <select
                                 value={gameType}
                                 name="gameType"
                                 onChange={(e) => setGameType(e.target.value)}
-                                className="h-8 px-2 py-1 text-black border-0 rounded"
+                                className="mt-1 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900"
                             >
                                 <option value="all">All</option>
                                 <option value="1">Single Digit</option>
@@ -135,12 +146,12 @@ const GeneralHistory = () => {
 
                         {/* Session Filter */}
                         <div className="flex flex-col">
-                            <label className="font-semibold text-[14px]">Session</label>
+                            <label className="font-semibold text-xs text-slate-600">Session</label>
                             <select
                                 value={session}
                                 name="session"
                                 onChange={(e) => setSession(e.target.value)}
-                                className="h-8 px-2 py-1 text-black border-0 rounded"
+                                className="mt-1 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900"
                             >
                                 <option value="all">All</option>
                                 <option value="open">Open</option>
@@ -150,12 +161,12 @@ const GeneralHistory = () => {
 
                         {/* Status Filter */}
                         <div className="flex flex-col">
-                            <label className="font-semibold text-[14px]">Status</label>
+                            <label className="font-semibold text-xs text-slate-600">Status</label>
                             <select
                                 value={status}
                                 name="status"
                                 onChange={(e) => setStatus(e.target.value)}
-                                className="h-8 px-2 py-1 text-black border-0 rounded"
+                                className="mt-1 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900"
                             >
                                 <option value="0">All</option>
                                 <option value="1">Win</option>
@@ -166,9 +177,9 @@ const GeneralHistory = () => {
 
                         {/* Date Filter */}
                         <div className="flex flex-col">
-                            <label className="font-semibold text-[14px]">Date</label>
+                            <label className="font-semibold text-xs text-slate-600">Date</label>
                             <input
-                                className="h-8 px-2 py-1 w-full text-black border-0 rounded"
+                                className="mt-1 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900"
                                 type="date"
                                 value={date}
                                 name="date"
@@ -178,18 +189,17 @@ const GeneralHistory = () => {
 
                         {/* Search Button */}
                         <div className="flex flex-col">
-                            <button className="h-8 px-2 py-1 text-white bg-green-600 border-t border-white/10 rounded mt-[21px] shadow-lg">
-                                Search
+                            <button className="mt-5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white">
+                                Apply filters
                             </button>
                         </div>
                     </div>
                 </form>
             </div>
-        </div>
 
             {/* History Table */}
             <div className="w-full overflow-auto">
-                <div className="py-3 px-2">
+                <div className="py-1">
                     {
                         dataLoading ? 
                             <div className="flex justify-center w-full p-4">
@@ -284,7 +294,7 @@ const GeneralHistory = () => {
                     />
                 </div>
             )}
-        </>
+        </section>
     );
 };
 

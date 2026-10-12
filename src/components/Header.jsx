@@ -104,7 +104,7 @@ const Header = ({ toggleSideBar }) => {
     }, [location])
 
     const getCurrentRouteHeading = () => {
-        let currentRoute = routes[0].children.find(
+        const currentRoute = routes.flatMap(route => route.children || [route]).find(
             (child) => child.path === location.pathname
         );
         return currentRoute?.name || "Unknown Route";
