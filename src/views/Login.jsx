@@ -129,6 +129,7 @@ const Login = () => {
                 let { token, user } = data.response;
                 Repository.defaults.headers.Authorization = "Bearer " + token;
                 localStorage.setItem("authToken", token);
+                sessionStorage.setItem("skipPushReminderOnLogin", "true");
                 localStorage.setItem("authUser", JSON.stringify(user));
                 localStorage.setItem("welcomeStatus", true);
                 localStorage.setItem("withdraw_details", JSON.stringify(user?.withdraw_details));
@@ -174,6 +175,7 @@ const Login = () => {
                 let { token, user } = data.response;
                 Repository.defaults.headers.Authorization = "Bearer " + token;
                 localStorage.setItem("authToken", token);
+                sessionStorage.setItem("skipPushReminderOnLogin", "true");
                 localStorage.setItem("authUser", JSON.stringify(user));
                 localStorage.setItem("welcomeStatus", true);
                 localStorage.setItem("withdraw_details", JSON.stringify(user?.withdraw_details));

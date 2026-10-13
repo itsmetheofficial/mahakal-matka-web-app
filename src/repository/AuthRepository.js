@@ -18,7 +18,7 @@ function updateName(name) {
 }
 
 function logout() {
-    return Repository.post(`/logout`, { web_push_subscription_id: localStorage.getItem('webPushSubscriptionId') || null })
+    return Repository.post(`/logout`, { web_push_subscription_id: localStorage.getItem('webPushSubscriptionId') || null }, { timeout: 10000 })
 }
 
 export {

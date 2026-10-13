@@ -4,6 +4,7 @@ import Logo from "../assets/imgs/Logo.png";
 import { useSelector } from "react-redux";
 import Modal from "./Modal";
 import DownloadButton from "./DownloadButton";
+import { endSession } from "../utils/session";
 import { logout } from "../repository/AuthRepository";
 import { toast } from "react-toastify";
 import Spinner from "./Spinner";
@@ -29,23 +30,17 @@ const Sidebar = ({ toggleSideBar }) => {
   // Handle logout API call
   const handleLogout = async () => {
     setLogoutLoading(true);
+    let message = '';
     try {
       const { data } = await logout();
-      if (data.error === false) {
-        // Success - proceed with current logout logic
-        localStorage.clear();
-        sessionStorage.clear();
-        window.location.href = "/auth/login";
-        document.title = "Mahakal Matka";
-      } else {
-        // Show error message from API
-        toast.error(data.message || "Logout failed. Please try again.");
+      if (data.error !== false) {
+        message = data.message || 'The server could not complete logout. You have been logged out locally.';
       }
     } catch (error) {
-      console.error("Logout error:", error);
-      toast.error("Something went wrong during logout. Please try again.");
+      message = error.response?.data?.message || 'The logout request failed. You have been logged out locally.';
     } finally {
       setLogoutLoading(false);
+      endSession(message);
     }
   };
 

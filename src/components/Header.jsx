@@ -11,6 +11,7 @@ import { getUserBalance } from "../repository/BalanceRepository";
 import { useShowEverything } from "../credentials";
 import Pusher from "pusher-js";
 import WebPushNotice from './WebPushNotice';
+import { useWebPush } from '../context/WebPushContext';
 
 // Function to convert URLs in text to clickable links while preserving line breaks
 const linkifyText = (text) => {
@@ -47,6 +48,7 @@ const linkifyText = (text) => {
 
 const Header = ({ toggleSideBar }) => {
     const navigate = useNavigate();
+    const { status: pushStatus } = useWebPush();
     let location = useLocation();
     const dispatch = useDispatch();
     let { appData: initialAppData, lastReadNotificationId, status } = useSelector(
@@ -225,6 +227,8 @@ const Header = ({ toggleSideBar }) => {
 
                                     <button
                                         className="relative ml-2"
+                                        aria-label="Notifications"
+                                        title={pushStatus === 'enabled' ? 'Notifications enabled' : 'Notification settings'}
                                         // to={isAuthenticated ? "/notifications" : "#"} // Prevent click if not authenticated
                                         onClick={
                                             isAuthenticated
@@ -235,6 +239,9 @@ const Header = ({ toggleSideBar }) => {
                                             // pointerEvents: isAuthenticated ? "auto" : "none", // Disable interaction
                                         }}
                                     >
+                                        {isAuthenticated && !['enabled', 'loading', 'unavailable'].includes(pushStatus) && (
+                                            <span className="absolute -bottom-1 -left-1 h-2 w-2 rounded-full bg-amber-300 ring-1 ring-white" aria-label="Notification setup needed" />
+                                        )}
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
                                             fill="none"

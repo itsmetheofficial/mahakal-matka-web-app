@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Header from "../components/Header";
+import NotificationReminder from '../components/NotificationReminder';
 import Sidebar from "../components/Sidebar";
 import FloatingMenu from "../components/FloatingMenu";
 import { Outlet, useNavigate, useLocation, useNavigationType } from "react-router-dom";
@@ -48,6 +49,7 @@ const Main = () => {
 
   return (
     <WebPushProvider><div className="font-poppins border border-black/20 border-t-0 border-b-0 overflow-hidden relative max-w-[480px] w-full mx-auto h-[100vh]">
+      <NotificationReminder />
       <Header toggleSideBar={toggleSideBar} />
       <Sidebar toggleSideBar={toggleSideBar} />
       {

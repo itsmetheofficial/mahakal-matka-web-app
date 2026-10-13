@@ -32,6 +32,14 @@ const Auth = ({ isOpen, toggle }) => {
   const { appData } = useSelector((state) => state.appData.appData);
 
   useEffect(() => {
+    const message = sessionStorage.getItem('logoutMessage');
+    if (message) {
+      sessionStorage.removeItem('logoutMessage');
+      toast.error(message);
+    }
+  }, []);
+
+  useEffect(() => {
     if (flowConfig.openMobileNumberModal) {
       setShouldOpenModal(true);
     } else {
@@ -87,6 +95,7 @@ const Auth = ({ isOpen, toggle }) => {
         const { token, user } = data.response;
         Repository.defaults.headers.Authorization = `Bearer ${token}`;
         localStorage.setItem("authToken", token);
+                sessionStorage.setItem("skipPushReminderOnLogin", "true");
         localStorage.setItem("authUser", JSON.stringify(user));
         localStorage.removeItem("authMenu");
 

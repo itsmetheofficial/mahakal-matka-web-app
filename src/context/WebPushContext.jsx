@@ -24,6 +24,7 @@ function getSdk(appId) {
             serviceWorkerParam: { scope: '/onesignal/' },
             promptOptions: { slidedown: { prompts: [{ type: 'push', autoPrompt: false }] } },
             welcomeNotification: { disable: true },
+            autoResubscribe: true,
           });
           window.clearTimeout(timeout);
           resolve(sdk);
@@ -42,12 +43,12 @@ export function WebPushProvider({ children }) {
   const { appData, user } = useSelector((state) => state.appData.appData);
   const [status, setStatus] = useState('loading');
   const sdkRef = useRef(null);
+  const updateRef = useRef(null);
   const appId = appData?.onesignal_app_id;
   const userId = user?.id;
-  const userFcm = user?.fcm;
 
   useEffect(() => {
-    if (!appId || !userId || userFcm || window.AndroidApp || !localStorage.getItem('authToken')) {
+    if (!appId || !userId || window.AndroidApp || !localStorage.getItem('authToken')) {
       setStatus('unavailable');
       return;
     }
@@ -69,17 +70,24 @@ export function WebPushProvider({ children }) {
       if (!supported) { setStatus('unsupported'); return; }
       const permission = Notification.permission;
       const subscription = currentSdk.User.PushSubscription;
-      const enabled = permission === 'granted' && subscription.optedIn;
-      setStatus(permission === 'denied' ? 'blocked' : enabled ? 'enabled' : 'off');
+      const enabled = permission === 'granted' && subscription.optedIn && Boolean(subscription.id);
+      const nextStatus = permission === 'denied' ? 'blocked' : enabled ? 'enabled'
+        : permission === 'granted' ? 'incomplete' : 'off';
+      // Do not report enabled until this browser's subscription is saved for the user.
+      if (!enabled) setStatus(nextStatus);
       if (subscription.id && localStorage.getItem('authToken')) {
         try {
-          await Repository.put('/web-push-subscription', {
+          const { data } = await Repository.put('/web-push-subscription', {
             subscription_id: subscription.id,
             enabled,
           }, { headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` } });
+          if (data.error) throw new Error(data.message || 'Could not save subscription');
+          if (!active) return;
           localStorage.setItem('webPushSubscriptionId', subscription.id);
+          setStatus(nextStatus);
         } catch (error) {
           console.error('Could not save web push subscription', error);
+          if (active) setStatus('error');
         }
       }
     };
@@ -87,6 +95,7 @@ export function WebPushProvider({ children }) {
       if (!active) return;
       currentSdk = instance;
       sdkRef.current = instance;
+      updateRef.current = update;
       instance.Notifications.addEventListener('permissionChange', update);
       instance.User.PushSubscription.addEventListener('change', update);
       window.addEventListener('focus', update);
@@ -98,6 +107,8 @@ export function WebPushProvider({ children }) {
     });
     return () => {
       active = false;
+      updateRef.current = null;
+      sdkRef.current = null;
       if (currentSdk) {
         currentSdk.Notifications.removeEventListener('permissionChange', update);
         currentSdk.User.PushSubscription.removeEventListener('change', update);
@@ -105,7 +116,7 @@ export function WebPushProvider({ children }) {
       window.removeEventListener('focus', update);
       document.removeEventListener('visibilitychange', update);
     };
-  }, [appId, userId, userFcm]);
+  }, [appId, userId]);
 
   const enable = async () => {
     if (!sdkRef.current) return;
@@ -113,7 +124,7 @@ export function WebPushProvider({ children }) {
     try {
       await sdkRef.current.Notifications.requestPermission();
       if (Notification.permission === 'granted') await sdkRef.current.User.PushSubscription.optIn();
-      setStatus(Notification.permission === 'granted' ? 'enabled' : 'off');
+      await updateRef.current?.();
     } catch (error) {
       console.error('Could not enable notifications', error);
       setStatus('error');
