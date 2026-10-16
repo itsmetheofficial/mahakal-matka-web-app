@@ -14,8 +14,8 @@ export default function NamePrompt() {
     const nameInputRef = useRef(null);
 
     useEffect(() => {
-        if (!localStorage.getItem("authToken") || !user?.id || user.name !== null) return;
-        const key = `namePromptShown:${user.id}`;
+        if (!localStorage.getItem("authToken") || !user?.id || (user.name || "").trim().toLowerCase() !== "user") return;
+        const key = `namePromptShown:placeholder:${user.id}`;
         if (sessionStorage.getItem(key)) return;
         sessionStorage.setItem(key, "true");
         setIsOpen(true);

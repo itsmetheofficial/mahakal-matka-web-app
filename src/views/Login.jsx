@@ -32,7 +32,6 @@ const Login = () => {
     let [mpin, setMpin] = useState("");
     let [newMpin, setNewMpin] = useState("");
     let [referralCode, setRefferalCode] = useState(searchParams?.get("referralCode") || "")
-    let [promoType, setPromoType] = useState(localStorage.getItem("campaign_code_v2") || "")
 
     const phoneInputRef = useRef(null);
     const otpInputRef = useRef(null);
@@ -56,9 +55,7 @@ const Login = () => {
             let payload = {
                 phone,
             };
-            if (promoType?.trim()?.length > 0) {
-                payload.promo_type = promoType;
-            }
+            payload.campaign_key = window.MarketingD360?.getCampaignKey() ?? null;
             let { data } = await sendLoginOtp(payload);
             if (data.error === false) {
                 if (data?.response?.newUser) {
@@ -134,9 +131,6 @@ const Login = () => {
                 localStorage.setItem("welcomeStatus", true);
                 localStorage.setItem("withdraw_details", JSON.stringify(user?.withdraw_details));
 
-                // Clear promo_type after successful login
-                localStorage.removeItem("campaign_code_v2");
-                localStorage.removeItem("promo_type");
 
                 navigate("/");
                 let response = await getAppData();
@@ -180,9 +174,6 @@ const Login = () => {
                 localStorage.setItem("welcomeStatus", true);
                 localStorage.setItem("withdraw_details", JSON.stringify(user?.withdraw_details));
 
-                // Clear promo_type after successful login
-                localStorage.removeItem("campaign_code_v2");
-                localStorage.removeItem("promo_type");
 
                 navigate("/");
                 let response = await getAppData();
@@ -205,9 +196,7 @@ const Login = () => {
                 phone,
                 otp_asked: true
             };
-            if (promoType?.trim()?.length > 0) {
-                payload.promo_type = promoType;
-            }
+            payload.campaign_key = window.MarketingD360?.getCampaignKey() ?? null;
             let { data } = await sendLoginOtp(payload);
             if (data.error === false) {
                 setMpinScreen(false);

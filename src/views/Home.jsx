@@ -50,23 +50,6 @@ const Home = () => {
     useEffect(() => {
         document.title = "Home | Mahakal Matka";
 
-        // Capture and store promo_type from 'r' URL parameter
-        const promoType = searchParams.get("r")?.trim().toLowerCase();
-        if (promoType?.trim()?.length > 0) {
-            localStorage.setItem("campaign_code_v2", promoType);
-            if (/^[a-z][a-z0-9_%-]{0,63}$/.test(promoType) && crypto.randomUUID) {
-                let visitorId = document.cookie.split('; ').find(value => value.startsWith('marketing_visitor_id='))?.split('=')[1];
-                if (!visitorId) {
-                    visitorId = crypto.randomUUID();
-                    document.cookie = `marketing_visitor_id=${visitorId};path=/;domain=.mahakalmatka.com;max-age=2592000;SameSite=Lax;Secure`;
-                }
-                fetch('https://api.mahakalmatka.com/api/marketing/event', {
-                    method: 'POST', keepalive: true,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ event_id: crypto.randomUUID(), visitor_id: visitorId, code: promoType, type: 'arrival' })
-                }).catch(() => {});
-            }
-        }
 
     }, []);
 
