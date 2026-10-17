@@ -6,6 +6,7 @@ import Pagination from "../components/Pagination";
 import { useDispatch, useSelector } from "react-redux";
 import { setLastReadNotificationId } from "../store/features/appData/appDataSlice";
 import WebPushNotice from '../components/WebPushNotice';
+import NotificationImage from '../components/NotificationImage';
 
 // Function to convert URLs in text to clickable links while preserving line breaks
 const linkifyText = (text) => {
@@ -123,6 +124,7 @@ const Notifications = () => {
                 <p className="text-sm mt-1 whitespace-pre-line" style={{ wordBreak: 'normal', overflowWrap: 'anywhere', hyphens: 'none' }}>
                   {linkifyText(notification.description)}
                 </p>
+                <NotificationImage notification={notification} />
                 <p className="text-xs mt-2 font-semibold text-right">
 
                   {moment(notification.created_at).format(

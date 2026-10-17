@@ -1,11 +1,22 @@
 import React from "react";
+import { walletAmounts, money } from '../utils/wallet';
 
-const AmountSelector = ({ placeholder, minAmount, onChange, value, setPaymentMethodModal, addBalanceMethod, appData }) => {
+const AmountSelector = ({ placeholder, minAmount, onChange, value, setPaymentMethodModal, addBalanceMethod, appData, rechargeOffers, user }) => {
   // Different price lists for deposit and withdraw
   const isWithdraw = placeholder === "Withdraw Amount";
   const depositPriceList = [minAmount, 200, 300, 500, 1000, 2000, 5000, 10000, 20000];
   const withdrawPriceList = [minAmount, 1000, 5000];
 
+  const selfOffer = rechargeOffers?.self;
+  const fixedOffers = rechargeOffers?.fixed || [];
+  const number = amount => Number(amount).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+  const rewardFor = amount => {
+    const paise = Math.round(Number(amount) * 100);
+    const percentage = selfOffer?.eligible && Number(amount) >= Number(selfOffer.minimum)
+      ? Math.floor((paise * Math.round(Number(selfOffer.percentage) * 100) + 5000) / 10000) : 0;
+    const fixed = fixedOffers.find(offer => Math.round(Number(offer.amount) * 100) === paise);
+    return (percentage + Math.round(Number(fixed?.bonus || 0) * 100)) / 100;
+  };
   let priceList = isWithdraw ? withdrawPriceList : depositPriceList;
 
   const _openMethodModal = () => {
@@ -17,6 +28,20 @@ const AmountSelector = ({ placeholder, minAmount, onChange, value, setPaymentMet
   }
   return (
     <div className="p-3">
+      {isWithdraw && (
+        <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border-2 border-primary bg-gradient-to-r from-green-50 to-blue-50 p-2.5 shadow-md">
+          <div className="flex min-w-0 items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="h-5 w-5 shrink-0 text-primary" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h16a2 2 0 0 1 2 2v10H5a2 2 0 0 1-2-2V7Zm0 0V5a2 2 0 0 1 2-2h12v4m4 5h-5v4h5" />
+            </svg>
+            <div>
+              <p className="text-[11px] font-medium leading-tight text-gray-600">Cash available to withdraw</p>
+              <p className="text-[10px] leading-tight text-gray-500">(केवल नकद राशि · बोनस नहीं)</p>
+            </div>
+          </div>
+          <p className="shrink-0 text-xl font-bold text-primary">₹{money(walletAmounts(user).cash)}</p>
+        </div>
+      )}
       <div className="relative w-full">
         <input
           type="number"
@@ -67,14 +92,21 @@ const AmountSelector = ({ placeholder, minAmount, onChange, value, setPaymentMet
             >
               {price}
               {
-                appData?.self_recharge_bonus ?
+                rewardFor(price) > 0 ?
                   <span className="absolute top-0 right-0 text-[10px] font-normal bg-primary text-white leading-none py-[2px] px-1 rounded">
-                    +{appData?.self_recharge_bonus > 0 ? parseFloat(appData?.self_recharge_bonus).toFixed(1) : 0}%
+                    +{number(rewardFor(price) / Number(price) * 100)}%
                   </span>
                   : null
               }
             </button>
           ))}
+        </div>
+      )}
+      {!isWithdraw && (selfOffer?.eligible || fixedOffers.length > 0) && (
+        <div className="mt-3 space-y-1 text-center text-xs text-primary">
+          {selfOffer?.eligible && <p>रिचार्ज पर {number(selfOffer.percentage)}% बोनस · {selfOffer.first_only ? 'सिर्फ पहले सफल रिचार्ज पर' : 'हर सफल रिचार्ज पर'}{Number(selfOffer.minimum) > 0 ? ` · न्यूनतम ₹${number(selfOffer.minimum)}` : ''}</p>}
+          {fixedOffers.length > 0 && <p>{fixedOffers.map(offer => `₹${number(offer.amount)} पर ₹${number(offer.bonus)} बोनस`).join(' · ')} · हर बार</p>}
+          {Number(value) > 0 && rewardFor(value) > 0 && <p className="font-semibold">इस रिचार्ज पर ₹{number(rewardFor(value))} बोनस</p>}
         </div>
       )}
     </div>

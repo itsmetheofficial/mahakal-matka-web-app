@@ -1,3 +1,4 @@
+import { cachedRechargeOffers, loadRechargeOffers, markSuccessfulRecharge } from '../utils/rechargeOffers';
 import WalletBalances from '../components/WalletBalances';
 import React, { useContext, useEffect, useRef, useState } from "react";
 import AmountSelector from "../components/AmountSelector";
@@ -273,6 +274,22 @@ const Wallet = () => {
     const storedUser = JSON.parse(localStorage.getItem("authUser")) || {};
 
     const currentUser = user?.phone ? user : storedUser;
+    const [rechargeOffers, setRechargeOffers] = useState(() => cachedRechargeOffers(user?.id));
+    useEffect(() => {
+        setRechargeOffers(cachedRechargeOffers(user?.id));
+        if (!user?.id) return;
+        let active = true;
+        loadRechargeOffers(user.id).then(offers => {
+            if (active) setRechargeOffers(offers);
+        }).catch(() => {});
+        return () => { active = false; };
+    }, [user?.id]);
+
+    useEffect(() => {
+        if (user?.id && depositHistoryData.some(deposit => deposit.status === 'success')) {
+            setRechargeOffers(markSuccessfulRecharge(user.id));
+        }
+    }, [user?.id, depositHistoryData]);
 
     useEffect(() => {
         setMethod(
@@ -985,6 +1002,7 @@ const Wallet = () => {
                                 setDepositAmountError("");
                             }}
                             minAmount={appData.min_deposit}
+                            rechargeOffers={rechargeOffers}
                             placeholder="Add Amount"
                             setPaymentMethodModal={setPaymentMethodModal}
                             addBalanceMethod={addBalanceMethod}
@@ -1004,14 +1022,6 @@ const Wallet = () => {
                             </div>
                         )}
 
-                        {
-                            appData?.self_recharge_bonus > 0 ?
-                                <p className="px-3 mt-2 text-xs text-center text-primary">
-                                    रिचार्ज करें और पाएं {appData?.self_recharge_bonus}% एक्स्ट्रा बैलेंस।
-                                    <br /> First time offer only
-                                </p>
-                                : null
-                        }
                         <div className="flex px-3 mt-2 justify-center w-full">
                             <button
                                 type="submit"

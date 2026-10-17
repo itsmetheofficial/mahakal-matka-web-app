@@ -12,6 +12,7 @@ import { getUserBalance } from "../repository/BalanceRepository";
 import { useShowEverything } from "../credentials";
 import Pusher from "pusher-js";
 import WebPushNotice from './WebPushNotice';
+import NotificationImage from './NotificationImage';
 import { useWebPush } from '../context/WebPushContext';
 
 // Function to convert URLs in text to clickable links while preserving line breaks
@@ -275,16 +276,18 @@ const Header = ({ toggleSideBar }) => {
                 (openNotificationModal && localStorage.getItem('authToken')) ?
                     <Modal
                         isOpen={openNotificationModal}
+                        panelClassName="sm:max-w-none"
+                        containerClassName={appData?.last_notification?.image_url ? "p-2" : undefined}
                         toggle={handleCloseNotificationModal}
                         zIndex={40}
                         closeOnBackdrop={false}
                         className="custom-modal"
                         centered
                     >
-                        <div className="font-semibold text-white bg-white " style={{ width: "400px", maxWidth: "90vw" }}>
+                        <div className="overflow-hidden rounded-xl font-semibold text-white bg-white" style={{ width: appData?.last_notification?.image_url ? "760px" : "400px", maxWidth: appData?.last_notification?.image_url ? "calc(100vw - 16px)" : "90vw" }}>
                             <div className="flex justify-between p-3 border-b bg-primary border-white">
-                                <h4>{appData?.last_notification?.title}</h4>
-                                <button onClick={handleCloseNotificationModal}>
+                                <h4 className="min-w-0 break-words pr-3">{appData?.last_notification?.title}</h4>
+                                <button className="shrink-0 self-start" aria-label="Close notification" onClick={handleCloseNotificationModal}>
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
                                         fill="none"
@@ -297,22 +300,25 @@ const Header = ({ toggleSideBar }) => {
                                     </svg>
                                 </button>
                             </div>
-                            <div className="py-2 pb-3 px-1">
+                            <div className={appData?.last_notification?.image_url ? "p-1" : "py-2 pb-3 px-1"}>
                                 <div
-                                    className="notification-content p-3 pb-1 text-md text-black max-h-[60vh] overflow-y-scroll whitespace-pre-line break-words"
+                                    className={`notification-content text-md text-black overflow-y-auto whitespace-pre-line break-words ${appData?.last_notification?.image_url ? "p-1 max-h-[80dvh]" : "p-3 pb-1 max-h-[60vh]"}`}
                                     style={{
                                         scrollbarWidth: 'thin',
                                         scrollbarColor: '#ca8a04 #e5e7eb'
                                     }}
                                 >
                                     {linkifyText(appData?.last_notification?.description)}
+                                    <NotificationImage notification={appData?.last_notification} compact />
                                 </div>
+                                {!appData?.last_notification?.image_url && <>
                                 <div className="p-3 pt-1 text-gray-700">
                                     {appData?.last_notification?.created_at?.length > 0
                                         ? moment(appData?.last_notification?.created_at).format("DD-MM-YYYY HH:mm")
                                         : ""}
                                 </div>
                                 <WebPushNotice compact />
+                                </>}
                             </div>
                         </div>
                     </Modal>
