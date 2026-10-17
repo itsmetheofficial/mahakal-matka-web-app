@@ -1,3 +1,4 @@
+import WalletBalances from '../components/WalletBalances';
 import React, { useContext, useEffect, useRef, useState } from "react";
 import AmountSelector from "../components/AmountSelector";
 import { Form, useLocation, useNavigate } from "react-router-dom";
@@ -720,9 +721,7 @@ const Wallet = () => {
         e.preventDefault();
         if (withdrawInProgressRef.current) return;
 
-        let maximumWithdrawAmount = appData?.enable_withdrawabale_balance_condition
-            ? (user?.withdrawable_balance ? parseFloat(user?.withdrawable_balance) : 0)
-            : (user?.balance ? parseFloat(user?.balance) : 0);
+        let maximumWithdrawAmount = (user?.balance ? parseFloat(user?.balance) : 0);
 
         // Validate withdrawal amount
         const minWithdraw = parseFloat(appData?.min_withdraw) || 0;
@@ -839,16 +838,7 @@ const Wallet = () => {
                         value: response?.balance_left || 0,
                     })
                 );
-                dispatch(
-                    setAuthDataUsersSingleValue({
-                        key: "withdrawable_balance",
-                        value: response?.withdrwabale_balance || 0,
-                    })
-                );
 
-                if (data?.response?.withdrwabale_balance) {
-                    localStorage.setItem("", JSON.stringify(data?.response?.withdrwabale_balance));
-                }
 
                 //also save the withdraw details
                 localStorage.setItem("withdraw_details", JSON.stringify(response?.withdraw_details));
@@ -962,11 +952,12 @@ const Wallet = () => {
                 </div>
             </Modal>
             <div className="pb-8">
-                <div className="grid grid-cols-2 text-sm">
+                <WalletBalances user={user} />
+                <div className="mx-3 mb-3 grid grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs">
                     <button
-                        className={`w-full p-2 font-semibold text-white ${activeTab === "addPoints"
-                            ? "bg-greenLight border-[1px] border-black"
-                            : "bg-orange"
+                        className={`rounded-lg px-2 py-2 font-semibold transition-colors ${activeTab === "addPoints"
+                            ? "bg-primary text-white shadow-sm"
+                            : "text-slate-600 bg-transparent"
                             }`}
                         onClick={async () => {
                             setActiveTab("addPoints");
@@ -976,9 +967,9 @@ const Wallet = () => {
                         Add Balance
                     </button>
                     <button
-                        className={`w-full p-2 font-semibold text-white ${activeTab === "withdrawPoints"
-                            ? "bg-greenLight border-[1px] border-black"
-                            : "bg-orange"
+                        className={`rounded-lg px-2 py-2 font-semibold transition-colors ${activeTab === "withdrawPoints"
+                            ? "bg-primary text-white shadow-sm"
+                            : "text-slate-600 bg-transparent"
                             }`}
                         onClick={handleWithdrawalTabClick}
                     >
@@ -1192,9 +1183,7 @@ const Wallet = () => {
                         <div className="p-3">
                             {
                                 (() => {
-                                    const maxAmount = appData?.enable_withdrawabale_balance_condition
-                                        ? parseFloat(user?.withdrawable_balance || 0)
-                                        : parseFloat(user?.balance || 0);
+                                    const maxAmount = parseFloat(user?.balance || 0);
                                     return withdrawAmount > maxAmount ? (
                                         <p className="text-red-500 text-center text-sm">Your balance is not sufficient for withdrawal.</p>
                                     ) : null;
@@ -1205,12 +1194,9 @@ const Wallet = () => {
                                 disabled={withdrawLoading}
                                 className={`w-full px-4 py-1 mt-2 text-white border-0 rounded-md 
                                 ${(() => {
-                                        const maxAmount = appData?.enable_withdrawabale_balance_condition
-                                            ? parseFloat(user?.withdrawable_balance || 0)
-                                            : parseFloat(user?.balance || 0);
+                                        const maxAmount = parseFloat(user?.balance || 0);
                                         return withdrawAmount > maxAmount ? " bg-gray-500 " : "bg-greenLight";
                                     })()}`}
-                            // disabled={withdrawAmount>parseFloat(user?.withdrawable_balance) ? true :false}
                             >
                                 {withdrawLoading ? <Spinner /> : "Withdraw"}
                             </button>

@@ -1,3 +1,4 @@
+import { walletAmounts } from '../utils/wallet';
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchAppData } from '../store/features/appData/appDataSlice';
@@ -17,7 +18,7 @@ const HalfSangam = () => {
   const [searchParams] = useSearchParams();
 
 
-  const [balance, setBalance] = useState(user?.balance);
+  const [balance, setBalance] = useState(walletAmounts(user).total);
 
   useEffect(() => {
     const isMarketLoaded = Object.keys(markets).includes('general');
@@ -38,7 +39,7 @@ const HalfSangam = () => {
       dispatch(fetchAppData())
         .then((response) => {
           const { appData } = response.payload;
-          setBalance(appData?.user?.balance);  // Update balance from appData
+          setBalance(walletAmounts(appData?.user).total);  // Update balance from appData
         })
         .catch((error) => {
           console.error("Error fetching app data: ", error);
@@ -74,7 +75,7 @@ const HalfSangam = () => {
       </div>
       <div className='w-[92%] rounded-lg text-[22px] p-1 m-auto my-2 text-center bg-[#e4ae39] font-semibold text-[#fff] flex justify-center items-center gap-0'>
         <img src={Gold_Coin} alt="Balance" className="w-[25px] h-[25px] object-cover cursor-auto" />
-        <p className='text-[16px]'> Balance: {user?.balance}</p>
+        <p className='text-[16px]'> Balance: {walletAmounts(user).total}</p>
       </div>
       <div className="border-t border-gray-300">
         {activeTab === "Open" && (

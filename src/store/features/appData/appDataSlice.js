@@ -24,11 +24,22 @@ export const appDataSlice = createSlice({
     setAppData: (state, action) => {
       state.appData = action.payload;
     },
+    setWalletBalances: (state, action) => {
+      if (!state.appData.user) return;
+      for (const key of ['balance', 'cash_balance', 'bonus_balance', 'total_balance']) {
+        if (action.payload[key] !== undefined) state.appData.user[key] = action.payload[key];
+      }
+    },
     setLastReadNotificationId: (state, action) => {
       state.lastReadNotificationId = action.payload;
     },
     setAuthDataUsersSingleValue: (state, action) => {
+      if (!state.appData.user) return;
       state.appData.user[action.payload.key] = action.payload.value;
+      if (action.payload.key === 'balance' || action.payload.key === 'bonus_balance') {
+        state.appData.user.cash_balance = state.appData.user.balance;
+        state.appData.user.total_balance = Number(state.appData.user.balance || 0) + Number(state.appData.user.bonus_balance || 0);
+      }
     }
   },
   extraReducers: (builder) => {
@@ -54,6 +65,6 @@ export const appDataSlice = createSlice({
   }
 });
 
-export const { setAppData, setLastReadNotificationId, setAuthDataUsersSingleValue } = appDataSlice.actions;
+export const { setAppData, setLastReadNotificationId, setAuthDataUsersSingleValue, setWalletBalances } = appDataSlice.actions;
 
 export default appDataSlice.reducer;

@@ -9,7 +9,7 @@ export async function refreshExternalGameBalance(dispatch) {
     try {
         const { data } = await getUserBalance();
         if (data.error === false) {
-            for (const key of ['balance', 'withdrawable_balance']) {
+            for (const key of ['balance', 'bonus_balance', 'cash_balance', 'total_balance']) {
                 dispatch(setAuthDataUsersSingleValue({ key, value: data.response[key] }));
             }
         }

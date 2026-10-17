@@ -1,3 +1,4 @@
+import { walletAmounts, money } from '../utils/wallet';
 import React, { useEffect, useState } from "react";
 import Container from "./Container";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -142,8 +143,7 @@ const Header = ({ toggleSideBar }) => {
                     appData: initialAppData?.appData,
                     user: {
                         ...initialAppData?.user,
-                        balance: userBalance?.data?.response?.balance,
-                        withdrawable_balance: userBalance?.data?.response?.withdrawable_balance
+                        ...userBalance?.data?.response,
                     }
                 }));
         }
@@ -198,7 +198,7 @@ const Header = ({ toggleSideBar }) => {
                                     {isAuthenticated && currentUser && (
                                         <>
                                             <span className="mr-2 text-xs flex flex-col items-center font-normal">
-                                                <strong>{initialAppData?.user?.balance || 0}</strong>
+                                                <strong>₹{money(walletAmounts(initialAppData?.user).total)}</strong>
                                                 <span>Balance</span>
 
                                             </span>

@@ -1,3 +1,4 @@
+import { walletAmounts } from '../utils/wallet';
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchAppData } from '../store/features/appData/appDataSlice';
@@ -28,14 +29,14 @@ const FullSangam = () => {
 
 
 
-  const [balance, setBalance] = useState(user?.balance);
+  const [balance, setBalance] = useState(walletAmounts(user).total);
 
   useEffect(() => {
     if (!balance) {
       dispatch(fetchAppData())
         .then((response) => {
           const { appData } = response.payload;
-          setBalance(appData?.user?.balance);
+          setBalance(walletAmounts(appData?.user).total);
         })
         .catch((error) => {
           console.error("Error fetching app data: ", error);
@@ -146,7 +147,7 @@ const FullSangam = () => {
       <div className="flex-grow">
         <div className='w-[92%] rounded-lg text-[22px] p-1 m-auto my-2 text-center bg-[#e4ae39] font-semibold text-[#fff] flex justify-center items-center gap-0'>
           <img src={Gold_Coin} alt="Balance" className="w-[25px] h-[25px] object-cover cursor-auto" />
-          <p className='text-[16px]'> Balance: {user?.balance}</p>
+          <p className='text-[16px]'> Balance: {walletAmounts(user).total}</p>
         </div>
 
         <div className="flex justify-center py-2 px-1">

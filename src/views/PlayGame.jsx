@@ -1,3 +1,4 @@
+import { walletAmounts } from '../utils/wallet';
 import React, { useEffect, useState, useContext } from "react";
 import Jodi from "../components/games/Jodi";
 import Manual from "../components/games/Manual";
@@ -271,7 +272,7 @@ const PlayGame = () => {
                 <div className="flex flex-col items-center font-semibold">
                   <small className="text-primary">Balance Remaining</small>
                   <small>
-                    {Number(user?.balance) -
+                    {Number(walletAmounts(user).total) -
                       games.reduce((prev, curr) => prev + Number(curr?.amount), 0)}
                   </small>
                 </div>

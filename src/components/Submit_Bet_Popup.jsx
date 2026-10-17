@@ -1,3 +1,4 @@
+import { walletAmounts } from '../utils/wallet';
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import { useDispatch, useSelector } from 'react-redux';
@@ -45,7 +46,7 @@ const Submit_Bet_Popup = ({ show, data, onClose, onSubmitted = () => { } }) => {
 
     const totalBids = data.length;
     const totalBidAmount = data.reduce((acc, { value }) => acc + parseInt(value, 10), 0);
-    const walletBalanceBefore = user?.balance || 0;
+    const walletBalanceBefore = walletAmounts(user).total || 0;
     const walletBalanceAfter = walletBalanceBefore - totalBidAmount;
 
     const handleSubmit = async () => {
@@ -181,7 +182,7 @@ const Submit_Bet_Popup = ({ show, data, onClose, onSubmitted = () => { } }) => {
                             </div>
                             <div className='w-full bg-[#fff] p-1 mt-1'>
                                 <p className='font-semibold'>Balance</p>
-                                <div className='flex flex-wrap justify-between items-center gap-x-2'>
+                                <div className='grid grid-cols-1 gap-x-2'>
                                     <div className="flex justify-between py-2">
                                         <span className='text-[14px] font-semibold'>Before Deduction: </span>
                                         <span className='text-[14px]'>{walletBalanceBefore}</span>

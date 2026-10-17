@@ -60,7 +60,7 @@ export default function InviteAndEarn() {
         <div className="relative">
           <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold"><FiGift /> INVITE & EARN</span>
           <h1 className="mt-4 font-hindi text-[25px] font-extrabold leading-[1.35]">दोस्तों को बुलाएं,<br />साथ में कमाएं</h1>
-          <p className="mt-2 max-w-[295px] text-sm leading-5 text-white/90">Invite friends and earn {appData?.invite_percentage_bet ?? 0}% bet commission.</p>
+          <p className="mt-2 max-w-[295px] text-sm leading-5 text-white/90">Invite friends and earn {appData?.invite_percentage_bet ?? 0}% bet commission as bonus credit. Use it to play; it cannot be withdrawn directly.</p>
           <p className="mt-1 font-hindi text-xs leading-5 text-white/80">आपके दोस्तों की बेट पर कमीशन पाएं।</p>
         </div>
       </section>

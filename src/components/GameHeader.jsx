@@ -1,3 +1,4 @@
+import { walletAmounts } from '../utils/wallet';
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchAppData } from '../store/features/appData/appDataSlice';
@@ -15,7 +16,7 @@ const GameHeader = ({ dropdown, selectedOption, onSelectChange }) => {
   const [searchParams] = useSearchParams();
 
   const dispatch = useDispatch();
-  const [balance, setBalance] = useState(user?.balance);
+  const [balance, setBalance] = useState(walletAmounts(user).total);
 
 
   useEffect(() => {
@@ -38,7 +39,7 @@ const GameHeader = ({ dropdown, selectedOption, onSelectChange }) => {
       dispatch(fetchAppData())
         .then((response) => {
           const { appData } = response.payload;
-          setBalance(appData?.user?.balance);
+          setBalance(walletAmounts(appData?.user).total);
         })
         .catch((error) => {
           console.error("Error fetching app data: ", error);
@@ -58,7 +59,7 @@ const GameHeader = ({ dropdown, selectedOption, onSelectChange }) => {
 
       <div className='w-[92%] rounded-lg text-[22px] p-1 m-auto my-0 text-center bg-white shadow-lg border-t border-black/30 font-semibold text-[#fff] flex justify-center items-center gap-0'>
         <img src={Gold_Coin} alt="Balance" className="w-[25px] h-[25px] object-cover cursor-auto " />
-        <p className='text-[16px] text-black'> Balance: {user?.balance}</p>
+        <p className='text-[16px] text-black'> Balance: {walletAmounts(user).total}</p>
       </div>
 
       <div className='w-[92%] rounded-lg text-[22px] px-2 m-auto mb-1 mt-1 text-center font-semibold text-[#000] flex justify-center items-center gap-0'>

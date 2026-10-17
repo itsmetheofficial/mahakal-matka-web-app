@@ -1,3 +1,4 @@
+import { walletAmounts } from '../utils/wallet';
 import { useContext, useEffect, useState } from "react";
 import Logo from "../assets/imgs/Logo.png";
 import { useDispatch, useSelector } from "react-redux";
@@ -85,7 +86,7 @@ const EditProfile = () => {
             <div className="p-8 pt-10 -mt-5 bg-white rounded-3xl">
                 {/* <div className="grid grid-cols-2 gap-4 text-sm">
                     <div className="p-2 px-3 font-bold text-center text-white rounded-md bg-greenLight">
-                        Balance: {user?.balance}
+                        Balance: {walletAmounts(user).total}
                     </div>
                     <div className="p-2 px-3 font-bold text-center text-white rounded-md bg-greenLight">
                         Bonus: {user?.bonus}
