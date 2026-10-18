@@ -284,7 +284,7 @@ const Header = ({ toggleSideBar }) => {
                         className="custom-modal"
                         centered
                     >
-                        <div className="overflow-hidden rounded-xl font-semibold text-white bg-white" style={{ width: appData?.last_notification?.image_url ? "760px" : "400px", maxWidth: appData?.last_notification?.image_url ? "calc(100vw - 16px)" : "90vw" }}>
+                        <div className="overflow-hidden rounded-xl font-semibold text-white bg-white" style={{ width: appData?.last_notification?.image_url ? "480px" : "400px", maxWidth: appData?.last_notification?.image_url ? "calc(100vw - 16px)" : "90vw" }}>
                             <div className="flex justify-between p-3 border-b bg-primary border-white">
                                 <h4 className="min-w-0 break-words pr-3">{appData?.last_notification?.title}</h4>
                                 <button className="shrink-0 self-start" aria-label="Close notification" onClick={handleCloseNotificationModal}>
