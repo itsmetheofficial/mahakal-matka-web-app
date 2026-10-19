@@ -3,15 +3,13 @@ import { useDispatch } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import Repository from '../repository/Repository';
 import { getUserBalance } from '../repository/BalanceRepository';
-import { setAuthDataUsersSingleValue } from '../store/features/appData/appDataSlice';
+import { setWalletBalances } from '../store/features/appData/appDataSlice';
 
 export async function refreshExternalGameBalance(dispatch) {
     try {
         const { data } = await getUserBalance();
         if (data.error === false) {
-            for (const key of ['balance', 'bonus_balance', 'cash_balance', 'total_balance']) {
-                dispatch(setAuthDataUsersSingleValue({ key, value: data.response[key] }));
-            }
+            dispatch(setWalletBalances(data.response));
         }
     } catch {
         // A later normal wallet refresh can recover a temporary connection failure.
@@ -56,7 +54,9 @@ const ExternalGame = () => {
     }, [attempt]);
 
     useEffect(() => {
-        const refresh = () => refreshExternalGameBalance(dispatch);
+        const refresh = () => {
+            if (!document.hidden) refreshExternalGameBalance(dispatch);
+        };
         refresh();
         const interval = window.setInterval(refresh, 15000);
         window.addEventListener('focus', refresh);
@@ -71,14 +71,13 @@ const ExternalGame = () => {
             window.clearInterval(interval);
             window.removeEventListener('focus', refresh);
             window.removeEventListener('message', handleReturn);
-            refresh();
         };
     }, [dispatch, navigate]);
 
     return (
         <main className="flex flex-col w-full bg-slate-950 text-white" style={{ height: '100dvh' }}>
             <header className="flex flex-none items-center justify-between gap-3 px-3 py-3 bg-primary" style={{ paddingTop: 'max(12px, env(safe-area-inset-top))' }}>
-                <Link to="/" replace className="font-semibold text-sm">← Back to Mahakal</Link>
+                <Link to="/" replace onClick={() => refreshExternalGameBalance(dispatch)} className="font-semibold text-sm">← Back to Mahakal</Link>
                 <span className="font-semibold">Aviator</span>
             </header>
             {error ? (
@@ -93,7 +92,7 @@ const ExternalGame = () => {
                     {!loaded && <p className="p-2 text-center text-sm" role="status">Loading game…</p>}
                     <iframe ref={frame} src={url} title="Aviator game" className="w-full flex-1 min-h-0 border-0" allow="autoplay; fullscreen" allowFullScreen referrerPolicy="no-referrer" onLoad={() => setLoaded(true)} />
                     <div className="flex flex-none justify-between items-center gap-3 text-xs px-3 py-2" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
-                        <Link to="/history?tab=aviator" className="font-semibold underline">My game history</Link>
+                        <Link to="/history?tab=aviator" onClick={() => refreshExternalGameBalance(dispatch)} className="font-semibold underline">My game history</Link>
                         <a href={url} target="_blank" rel="noopener noreferrer" className="underline">Open in a new tab</a>
                     </div>
                 </>

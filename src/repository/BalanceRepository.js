@@ -55,8 +55,49 @@ function transferBalance(payload) {
 	);
 }
 
-function getUserBalance(payload) {
-	return Repository.get(`/get-user-balance`);
+// Share refreshes from focus, navigation and polling within the same login session.
+let balanceRequest;
+let balanceToken;
+let balanceResponse;
+let balanceRefreshedAt = 0;
+let balanceRetryAt = 0;
+let balanceRateLimitError;
+
+function getUserBalance() {
+    const token = localStorage.getItem('authToken');
+    if (token !== balanceToken) {
+        balanceToken = token;
+        balanceRequest = null;
+        balanceResponse = null;
+        balanceRefreshedAt = 0;
+        balanceRetryAt = 0;
+        balanceRateLimitError = null;
+    }
+    if (balanceRequest) return balanceRequest;
+    if (Date.now() < balanceRetryAt) return Promise.reject(balanceRateLimitError);
+    if (balanceResponse && Date.now() - balanceRefreshedAt < 3000) {
+        return Promise.resolve(balanceResponse);
+    }
+    const request = Repository.get('/get-user-balance', { timeout: 15000 }).then(response => {
+        if (balanceToken === token) {
+            balanceResponse = response;
+            balanceRefreshedAt = Date.now();
+        }
+        return response;
+    }).catch(error => {
+        if (balanceToken === token && error.response?.status === 429) {
+            const retryAfter = error.response.headers?.['retry-after'];
+            const seconds = Number(retryAfter);
+            const delay = Number.isFinite(seconds) ? seconds * 1000 : Date.parse(retryAfter) - Date.now();
+            balanceRetryAt = Date.now() + Math.max(60000, Number.isFinite(delay) ? delay : 60000);
+            balanceRateLimitError = error;
+        }
+        throw error;
+    }).finally(() => {
+        if (balanceRequest === request) balanceRequest = null;
+    });
+    balanceRequest = request;
+    return request;
 }
 function getReferralDetails(payload) {
 	return Repository.get(`/get-referral-details`);

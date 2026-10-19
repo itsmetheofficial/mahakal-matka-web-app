@@ -375,7 +375,8 @@ export const routes = [
 ];
 
 const App = () => {
-	const router = createBrowserRouter(routes);
+	// Keep navigation and page effects stable when wallet/app data changes.
+	const [router] = useState(() => createBrowserRouter(routes));
 	const dispatch = useDispatch();
 	const [isOpen, setOpen] = useState(false);
 	const [isOpenWebApp, setOpenWebApp] = useState(false);
