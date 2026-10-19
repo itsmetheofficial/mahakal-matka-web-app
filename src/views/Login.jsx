@@ -1,3 +1,4 @@
+import { getMarketingAttribution } from "../utils/marketingAttribution";
 import React, { useEffect, useRef, useState } from "react";
 import Logo from "../assets/imgs/Logo.png";
 import { sendLoginOtp, verifyLoginOtp, verifyLoginMPin } from "../repository/AuthRepository";
@@ -55,7 +56,7 @@ const Login = () => {
             let payload = {
                 phone,
             };
-            payload.campaign_key = window.MarketingD360?.getCampaignKey() ?? null;
+            Object.assign(payload, getMarketingAttribution());
             let { data } = await sendLoginOtp(payload);
             if (data.error === false) {
                 if (data?.response?.newUser) {
@@ -196,7 +197,7 @@ const Login = () => {
                 phone,
                 otp_asked: true
             };
-            payload.campaign_key = window.MarketingD360?.getCampaignKey() ?? null;
+            Object.assign(payload, getMarketingAttribution());
             let { data } = await sendLoginOtp(payload);
             if (data.error === false) {
                 setMpinScreen(false);
