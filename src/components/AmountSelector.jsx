@@ -4,7 +4,9 @@ import { walletAmounts, money } from '../utils/wallet';
 const AmountSelector = ({ placeholder, minAmount, onChange, value, setPaymentMethodModal, addBalanceMethod, appData, rechargeOffers, user }) => {
   // Different price lists for deposit and withdraw
   const isWithdraw = placeholder === "Withdraw Amount";
-  const depositPriceList = [minAmount, 200, 300, 500, 1000, 2000, 5000, 10000, 20000];
+  const depositPriceList = Array.isArray(appData?.deposit_amounts)
+    ? [...new Set(appData.deposit_amounts.map(Number))].filter(amount => Number.isFinite(amount) && amount > 0 && amount >= Number(minAmount || 0))
+    : [];
   const withdrawPriceList = [minAmount, 1000, 5000];
 
   const selfOffer = rechargeOffers?.self;

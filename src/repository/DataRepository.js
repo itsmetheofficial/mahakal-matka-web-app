@@ -1,6 +1,36 @@
 import Repository from "./Repository";
 
-async function getAppData() {
+let cachedAppData = null;
+let cachedToken = null;
+let pendingAppData = null;
+
+// Keep the backend response for this running app session. A reload starts fresh.
+// Explicit refreshes still update profile, payment and notification information.
+async function getAppData({ forceRefresh = false } = {}) {
+    const token = localStorage.getItem("authToken");
+    if (token !== cachedToken) {
+        cachedToken = token;
+        cachedAppData = null;
+        pendingAppData = null;
+    }
+    if (!forceRefresh && cachedAppData) return cachedAppData;
+    if (!forceRefresh && pendingAppData) return pendingAppData;
+
+    const request = loadAppData().then(response => {
+        if (token === cachedToken && response?.data?.error === false) {
+            cachedAppData = response;
+        }
+        return response;
+    });
+    pendingAppData = request;
+    try {
+        return await request;
+    } finally {
+        if (pendingAppData === request) pendingAppData = null;
+    }
+}
+
+async function loadAppData() {
     const lastReadNotificationId = Number(localStorage.getItem("lastReadNotificationId")) || 0;
     const response = await Repository.get(`/get-app-data`, {
         params: { last_read_notification_id: lastReadNotificationId }

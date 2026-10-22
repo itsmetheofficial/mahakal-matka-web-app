@@ -1,10 +1,10 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
+import { getAppData } from '../../../repository/DataRepository';
 
 // Thunk to fetch app data from the API
 export const fetchAppData = createAsyncThunk('appData/fetchAppData', async () => {
-  const response = await axios.get('/get-app-data');
-  return response.data.response.appData;  // Directly returning the appData object
+  const response = await getAppData();
+  return response.data.response;
 });
 
 export const appDataSlice = createSlice({
@@ -49,14 +49,7 @@ export const appDataSlice = createSlice({
       })
       .addCase(fetchAppData.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        const { enable_desawar, enable_desawar_only, withdraw_open_time, withdraw_close_time } = action.payload;
-        state.appData = {
-          ...action.payload,
-          enable_desawar,
-          enable_desawar_only,
-          withdraw_open_time: withdraw_open_time || '10:00:00',
-          withdraw_close_time: withdraw_close_time || '22:00:00',
-        };
+        state.appData = action.payload;
       })
       .addCase(fetchAppData.rejected, (state, action) => {
         state.status = 'failed';

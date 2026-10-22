@@ -924,7 +924,7 @@ const Wallet = () => {
                     <button onClick={async () => {
                         toggleQRCodeModal();
                         // Update with balance api after 5sec
-                        let { data } = await getAppData();
+                        let { data } = await getAppData({ forceRefresh: true });
                         if (!data.error) {
                             dispatch(setAppData(data.response));
                         }

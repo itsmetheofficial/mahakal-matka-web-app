@@ -84,7 +84,7 @@ const Header = ({ toggleSideBar }) => {
 
             const currentRequestId = ++requestId;
             try {
-                const response = await getAppData();
+                const response = await getAppData({ forceRefresh: true });
                 if (active && currentRequestId === requestId && response?.data?.error === false) {
                     dispatch(setAppData(response.data.response));
                 }

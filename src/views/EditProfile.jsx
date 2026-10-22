@@ -26,7 +26,7 @@ const EditProfile = () => {
     let [loading, setLoading] = useState(false);
 
     const fetchAppData = async () => {
-        let { data } = await getAppData();
+        let { data } = await getAppData({ forceRefresh: true });
 
         if (!data?.error) {
             dispatch(setAppData(data?.response));
