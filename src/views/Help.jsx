@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { getSupportChatAvailability } from "../repository/ChatRepository";
 
 
 const Help = () => {
@@ -8,6 +9,8 @@ const Help = () => {
   let { appData } = useSelector((state) => state.appData.appData);
   const [showDialog, setShowDialog] = useState(false);
   const [dialogMessage, setDialogMessage] = useState({ title: "", content: "" });
+  const [checkingChat, setCheckingChat] = useState(false);
+  const navigate = useNavigate();
 
   // Function to convert 24-hour time to 12-hour format with AM/PM
   const convertTo12Hour = (time24) => {
@@ -100,9 +103,27 @@ const Help = () => {
   };
 
   // Handle chat button clicks
-  const handleChatClick = (e, type) => {
+  const handleChatClick = async (path) => {
+    setCheckingChat(true);
+    try {
+      const { data } = await getSupportChatAvailability();
+      if (data.error) {
+        setDialogMessage({ title: "Holiday Notice", text: data.message });
+        setShowDialog(true);
+        return;
+      }
+    } catch {
+      setDialogMessage({
+        title: "Support Chat",
+        text: "Could not check support chat availability. Please try again.",
+      });
+      setShowDialog(true);
+      return;
+    } finally {
+      setCheckingChat(false);
+    }
+
     if (!isWithinSupportHours()) {
-      e.preventDefault();
       const openTime12 = convertTo12Hour(appData?.support_open_time);
       const closeTime12 = convertTo12Hour(appData?.support_close_time);
       setDialogMessage({
@@ -121,7 +142,9 @@ const Help = () => {
         `
       });
       setShowDialog(true);
+      return;
     }
+    navigate(path);
   };
 
 
@@ -135,7 +158,20 @@ const Help = () => {
               <h3 className="text-white text-lg font-bold text-center">{dialogMessage.title}</h3>
             </div>
             <div className="p-6">
-              <div dangerouslySetInnerHTML={{ __html: dialogMessage.content }}></div>
+              {dialogMessage.text ? (
+                <div className="text-center">
+                  <p className="mb-4 whitespace-pre-line text-gray-700">{dialogMessage.text}</p>
+                  <button
+                    type="button"
+                    onClick={() => setShowDialog(false)}
+                    className="rounded-lg bg-gray-600 px-8 py-2 font-semibold text-white hover:bg-gray-700"
+                  >
+                    Close
+                  </button>
+                </div>
+              ) : (
+                <div dangerouslySetInnerHTML={{ __html: dialogMessage.content }}></div>
+              )}
             </div>
           </div>
           {/* Hidden button for onclick handlers to reference */}
@@ -161,9 +197,10 @@ const Help = () => {
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-3">
-          <Link
-            to="/withdrawal-chat"
-            onClick={(e) => handleChatClick(e, 'withdrawal')}
+          <button
+            type="button"
+            disabled={checkingChat}
+            onClick={() => handleChatClick("/withdrawal-chat")}
             className="relative h-[60px] flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 overflow-hidden group"
           >
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-200"></div>
@@ -172,11 +209,12 @@ const Help = () => {
               <span className="text-sm font-bold">Withdrawal Chat</span>
               <span className="text-xs opacity-90">निकासी चैट</span>
             </div>
-          </Link>
+          </button>
 
-          <Link
-            to="/deposit-chat"
-            onClick={(e) => handleChatClick(e, 'deposit')}
+          <button
+            type="button"
+            disabled={checkingChat}
+            onClick={() => handleChatClick("/deposit-chat")}
             className="relative h-[60px] flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 overflow-hidden group"
           >
             <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-200"></div>
@@ -185,7 +223,7 @@ const Help = () => {
               <span className="text-sm font-bold">Deposit Chat</span>
               <span className="text-xs opacity-90">जमा चैट</span>
             </div>
-          </Link>
+          </button>
         </div>
 
         {/* Improved descriptive text */}

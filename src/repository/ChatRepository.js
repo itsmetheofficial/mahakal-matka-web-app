@@ -8,6 +8,10 @@ function sendGroupPostingMessages(payload) {
 	return Repository.post(`/group-posting/send-message`, payload);
 }
 
+function getSupportChatAvailability() {
+	return Repository.get('/support-chat/availability');
+}
+
 function getDepositMessages() {
 	return Repository.get(`/deposit-chat/get`);
 }
@@ -43,6 +47,7 @@ function sendWithdrawMessages(payload) {
 }
 
 export {
+	getSupportChatAvailability,
 	sendGroupPostingMessages,
 	sendWithdrawMessages,
 	sendDepositMessages,

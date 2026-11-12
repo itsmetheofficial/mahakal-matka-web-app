@@ -229,7 +229,6 @@ const Wallet = () => {
     let locationRequestInProgressRef = useRef(false);
     let hasGrantedLocationInSessionRef = useRef(false);
     let [withdrawLocationRequirement, setWithdrawLocationRequirement] = useState(null);
-    const [withdrawHolidayMessage, setWithdrawHolidayMessage] = useState("");
     let [depositLoading, setDepositLoading] = useState(false);
     let [qrCodeModalURL, setQRCodeModalURL] = useState(null);
     let [screenshotModalURL, setScreenshotModalURL] = useState(null);
@@ -737,7 +736,7 @@ const Wallet = () => {
 
     const handleWithdrawSubmit = async (e) => {
         e.preventDefault();
-        if (withdrawInProgressRef.current || withdrawHolidayMessage) return;
+        if (withdrawInProgressRef.current) return;
 
         let maximumWithdrawAmount = (user?.balance ? parseFloat(user?.balance) : 0);
 
@@ -773,10 +772,6 @@ const Wallet = () => {
             let locationRequirement = cachedRequirement;
             if (!locationRequirement) {
                 const { data: locationRequirementData } = await getWithdrawLocationRequirement();
-                if (locationRequirementData.code === "withdrawal_holiday") {
-                    setWithdrawHolidayMessage(locationRequirementData.message);
-                    return;
-                }
                 if (locationRequirementData.error) {
                     throw new Error(locationRequirementData.message);
                 }
@@ -841,10 +836,7 @@ const Wallet = () => {
                 };
             }
             let { data } = await withdrawBalance(payload);
-            if (data.code === "withdrawal_holiday") {
-                setWithdrawLocationRequirement(null);
-                setWithdrawHolidayMessage(data.message);
-            } else if (data.error) {
+            if (data.error) {
                 setDialogMessage(data.message);
                 setDialogSuccess(false);
                 setIsDialogOpen(true);
@@ -911,7 +903,6 @@ const Wallet = () => {
             .then(({ data }) => {
                 if (!active) return;
                 setWithdrawLocationRequirement(data.error ? null : data.response);
-                setWithdrawHolidayMessage(data.code === "withdrawal_holiday" ? data.message : "");
             })
             .catch(() => {
                 if (active) setWithdrawLocationRequirement(null);
@@ -1049,10 +1040,6 @@ const Wallet = () => {
 
                         </div>
                     </form>
-                ) : withdrawHolidayMessage ? (
-                    <p role="status" className="mx-3 my-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 whitespace-pre-line">
-                        {withdrawHolidayMessage}
-                    </p>
                 ) : (
                     <form ref={walletWithdrawForm} onSubmit={handleWithdrawSubmit}>
 
